@@ -1,0 +1,2079 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game Edukasi IPA: Pesawat Sederhana di Temanggung</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tone.js untuk efek suara interaktif tanpa URL eksternal -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <!-- Google Fonts: Fredoka & Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #1b3b2b;
+      user-select: none;
+    }
+    h1, h2, h3, .font-game {
+      font-family: 'Fredoka', sans-serif;
+    }
+
+    /* Tekstur papan kayu & tablet game */
+    .wood-frame {
+      background: linear-gradient(145deg, #6b3e1e 0%, #4a2810 50%, #3a1e0b 100%);
+      border: 4px solid #8c5327;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55), inset 0 2px 4px rgba(255, 220, 170, 0.25);
+    }
+    .wood-panel {
+      background: linear-gradient(180deg, #854d27 0%, #5e3418 100%);
+      border: 2px solid #a66738;
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    }
+    .parchment-panel {
+      background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+      border: 3px solid #92400e;
+      box-shadow: 0 6px 15px rgba(69, 26, 3, 0.25);
+    }
+
+    /* Tombol bergaya game dengan efek tekan */
+    .game-btn {
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+    }
+    .game-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      filter: brightness(1.06);
+    }
+    .game-btn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+    }
+
+    /* Kartu alat dengan animasi hover */
+    .tool-card {
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 0 #78350f;
+    }
+    .tool-card:hover:not(:disabled) {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 7px 12px rgba(120, 53, 15, 0.35);
+    }
+    .tool-card:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #78350f;
+    }
+
+    /* Animasi umpan balik */
+    @keyframes popIn {
+      0% { transform: scale(0.85); opacity: 0; }
+      70% { transform: scale(1.04); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.3s ease-out forwards;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .animate-shake {
+      animation: shake 0.4s ease-in-out;
+    }
+
+    /* Custom scrollbar lembut untuk gudang alat */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #b45309;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 bg-gradient-to-b from-emerald-950 via-emerald-900 to-stone-900 text-stone-800">
+
+  <!-- HEADER JUDUL GAME -->
+  <header class="w-full max-w-6xl text-center mb-2 sm:mb-3">
+    <div class="inline-flex items-center gap-2 bg-amber-900/90 border-2 border-amber-400 px-4 py-1.5 rounded-full shadow-lg">
+      <span class="text-lg sm:text-xl">⛰️</span>
+      <h1 class="font-game text-base sm:text-xl md:text-2xl font-bold tracking-wide text-amber-100 drop-shadow">
+        PESAWAT SEDERHANA DI LERENG SINDORO–SUMBING
+      </h1>
+      <span class="text-lg sm:text-xl">🌱</span>
+    </div>
+  </header>
+
+  <!-- KONTAINER UTAMA TABLET GAME -->
+  <main class="w-full max-w-6xl wood-frame rounded-3xl p-2.5 sm:p-4 flex flex-col gap-3">
+
+    <!-- TOP BAR HUD (Skor, Progres Misi, Audio, Referensi) -->
+    <div class="wood-panel rounded-2xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-amber-50">
+      <!-- Kiri: Tombol Reset & Skor -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button onclick="resetGame()" title="Mulai Ulang Permainan"
+          class="game-btn bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1 border border-rose-300">
+          <span>🔄</span> <span class="hidden sm:inline">Ulangi</span>
+        </button>
+
+        <div class="bg-amber-950/80 border border-amber-500/60 px-3 py-1 rounded-xl flex items-center gap-2">
+          <span class="text-yellow-400 text-base sm:text-lg">⭐</span>
+          <span class="text-xs sm:text-sm font-semibold text-amber-200">SKOR:</span>
+          <span id="score-display" class="font-game text-base sm:text-lg font-bold text-yellow-300">0</span>
+        </div>
+      </div>
+
+      <!-- Tengah: Progress Bar Misi -->
+      <div class="flex-1 min-w-[150px] max-w-md mx-1">
+        <div class="flex justify-between text-[11px] sm:text-xs font-bold text-amber-200 mb-1">
+          <span>MISI PERTANIAN TEMANGGUNG</span>
+          <span id="mission-counter">1 / 10</span>
+        </div>
+        <div class="w-full h-3.5 bg-amber-950 rounded-full p-0.5 border border-amber-600 overflow-hidden">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-lime-400 to-emerald-500 rounded-full transition-all duration-500" style="width: 10%;"></div>
+        </div>
+      </div>
+
+      <!-- Kanan: Tombol Pusat Bantuan & Suara -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button onclick="openHelpCenterModal()" id="btn-help-center"
+          class="game-btn bg-amber-400 hover:bg-amber-300 text-amber-950 px-3 sm:px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-yellow-200">
+          <span>🆘</span> <span>Pusat Bantuan</span>
+        </button>
+
+        <button onclick="toggleSound()" id="btn-sound" title="Suara Efek"
+          class="game-btn bg-emerald-700 hover:bg-emerald-600 text-white p-1.5 sm:px-2.5 rounded-xl font-bold text-sm border border-emerald-400">
+          🔊
+        </button>
+      </div>
+    </div>
+
+    <!-- AREA UTAMA: SIDEBAR GUDANG ALAT (KIRI) + PANGGUNG CERITA & PERTANYAAN (KANAN) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+      <!-- SIDEBAR KIRI: ENSIKLOPEDIA ALAT-ALAT PERTANIAN & RUMAH TANGGA -->
+      <aside class="lg:col-span-4 wood-panel rounded-2xl p-2.5 sm:p-3 flex flex-col">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="font-game text-amber-100 text-sm sm:text-base flex items-center gap-1.5">
+            <span>🧰</span> <span>DAFTAR ALAT LENGKAP</span>
+          </h2>
+          <span class="text-[11px] bg-amber-950 text-amber-300 px-2 py-0.5 rounded-full border border-amber-600">
+            10 Alat
+          </span>
+        </div>
+
+        <!-- Filter Kategori Alat -->
+        <div class="grid grid-cols-4 gap-1 mb-2.5 bg-amber-950/70 p-1 rounded-xl border border-amber-700">
+          <button onclick="filterSidebar('all')" id="tab-all" class="tab-filter bg-amber-500 text-amber-950 font-bold text-[11px] py-1 rounded-lg transition">Semua</button>
+          <button onclick="filterSidebar('tuas')" id="tab-tuas" class="tab-filter text-amber-200 hover:bg-amber-800/60 font-semibold text-[11px] py-1 rounded-lg transition">Tuas</button>
+          <button onclick="filterSidebar('katrol')" id="tab-katrol" class="tab-filter text-amber-200 hover:bg-amber-800/60 font-semibold text-[11px] py-1 rounded-lg transition">Katrol</button>
+          <button onclick="filterSidebar('bidang_miring')" id="tab-bidang_miring" class="tab-filter text-amber-200 hover:bg-amber-800/60 font-semibold text-[11px] py-1 rounded-lg transition">B.Miring</button>
+        </div>
+
+        <!-- Daftar Kartu Alat (Tanpa bocoran jenis tuas I/II/III agar siswa menganalisis sendiri) -->
+        <div id="sidebar-tools-list" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 max-h-[240px] lg:max-h-[455px] overflow-y-auto pr-1">
+          <!-- Diisi via JavaScript -->
+        </div>
+
+        <p class="text-[11px] text-amber-200/90 mt-2 text-center italic">
+          *Klik gambar alat untuk melihat detail bentuk & fungsinya
+        </p>
+      </aside>
+
+      <!-- PANEL KANAN: ADEGAN LERENG TEMANGGUNG + SOAL INTERAKTIF -->
+      <section class="lg:col-span-8 flex flex-col gap-3">
+
+        <!-- PANGGUNG VISUAL ADEGAN (Ilustrasi Cerita + Gambar Alat yang Digunakan) -->
+        <div class="relative rounded-2xl overflow-hidden border-4 border-amber-900 shadow-inner bg-sky-200">
+          <div id="scene-stage" class="w-full h-60 sm:h-68 md:h-72 relative">
+            <!-- SVG Pemandangan Desa Pegunungan Sindoro-Sumbing Temanggung -->
+            <svg viewBox="0 0 800 320" preserveAspectRatio="xMidYMid slice" class="w-full h-full">
+              <defs>
+                <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#38bdf8"/>
+                  <stop offset="65%" stop-color="#bae6fd"/>
+                  <stop offset="100%" stop-color="#fef9c3"/>
+                </linearGradient>
+                <linearGradient id="mtnSindoro" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#334155"/>
+                  <stop offset="40%" stop-color="#475569"/>
+                  <stop offset="100%" stop-color="#15803d"/>
+                </linearGradient>
+                <linearGradient id="mtnSumbing" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#1e293b"/>
+                  <stop offset="45%" stop-color="#3f6212"/>
+                  <stop offset="100%" stop-color="#166534"/>
+                </linearGradient>
+                <linearGradient id="hillTerace" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#65a30d"/>
+                  <stop offset="100%" stop-color="#365314"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Langit & Awan -->
+              <rect width="800" height="320" fill="url(#skyGrad)"/>
+              <circle cx="690" cy="58" r="28" fill="#fde047" opacity="0.85"/>
+              <g fill="#ffffff" opacity="0.75">
+                <ellipse cx="140" cy="52" rx="45" ry="16"/>
+                <ellipse cx="170" cy="48" rx="35" ry="14"/>
+                <ellipse cx="470" cy="44" rx="50" ry="15"/>
+              </g>
+
+              <!-- Gunung Kembar Sindoro & Sumbing -->
+              <polygon points="30,220 220,42 420,220" fill="url(#mtnSindoro)"/>
+              <polygon points="195,65 220,42 248,68 232,76 218,67 205,74" fill="#e2e8f0" opacity="0.65"/>
+              <polygon points="340,220 550,36 770,220" fill="url(#mtnSumbing)"/>
+              <polygon points="525,58 550,36 578,61 560,70 548,60 535,68" fill="#e2e8f0" opacity="0.65"/>
+
+              <!-- Terasering Kebun Kopi & Tembakau Temanggung -->
+              <path d="M0,185 Q200,155 430,190 T800,175 L800,320 L0,320 Z" fill="url(#hillTerace)"/>
+              <path d="M0,215 Q260,195 520,220 T800,205" fill="none" stroke="#84cc16" stroke-width="4" opacity="0.6"/>
+              <path d="M0,245 Q300,225 580,250 T800,235" fill="none" stroke="#a3e635" stroke-width="4" opacity="0.5"/>
+
+              <!-- Rumah Pedesaan Temanggung di Latar Kanan -->
+              <g transform="translate(655, 165)">
+                <rect x="10" y="25" width="60" height="35" fill="#92400e"/>
+                <polygon points="2,25 40,4 78,25" fill="#451a03"/>
+                <rect x="32" y="38" width="14" height="22" fill="#fef3c7"/>
+              </g>
+
+              <!-- Tanah Halaman Kebun -->
+              <rect x="0" y="255" width="800" height="65" fill="#78350f"/>
+              <rect x="0" y="255" width="800" height="10" fill="#4d7c0f"/>
+            </svg>
+
+            <!-- Lapisan Konten Dinamis di Atas Panggung -->
+            <div class="absolute inset-0 flex flex-col justify-between p-3 sm:p-4 bg-gradient-to-t from-black/55 via-transparent to-black/20">
+              <!-- Lencana Lokasi & Kategori Tantangan -->
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span id="scene-location-badge" class="bg-amber-900/90 text-amber-100 border border-amber-400 px-3 py-1 rounded-full text-xs font-bold shadow">
+                  📍 Kebun Kopi Lereng Sindoro
+                </span>
+                <span id="scene-category-badge" class="bg-emerald-800/95 text-emerald-100 border border-emerald-300 px-3 py-1 rounded-full text-xs font-bold shadow">
+                  Tantangan Analisis Alat
+                </span>
+              </div>
+
+              <!-- Kotak Cerita Permasalahan Petani + Visual Alat yang Sesuai -->
+              <div class="bg-amber-50/95 border-2 border-amber-700 rounded-2xl p-2.5 sm:p-3.5 shadow-lg flex items-center gap-3">
+                <!-- Ilustrasi Alat/Situasi yang Digunakan -->
+                <div id="scene-visual-box" class="w-20 h-20 sm:w-24 sm:h-24 shrink-0 bg-white border-2 border-amber-500 rounded-xl flex items-center justify-center p-1.5 shadow-inner">
+                  <!-- SVG dinamis muncul di sini -->
+                </div>
+
+                <!-- Teks Cerita Situasi -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between gap-1.5 mb-0.5">
+                    <span class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-amber-800" id="mission-title">
+                      Misi 1
+                    </span>
+                    <button type="button" onclick="speakMissionAudio()" id="btn-tts-story" title="Bacakan Cerita & Soal dengan Suara"
+                      class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full items-center gap-1 shadow">
+                      <span>🗣️</span> <span>Bacakan Suara</span>
+                    </button>
+                  </div>
+                  <p id="mission-story" class="text-xs sm:text-sm text-stone-800 leading-snug font-medium">
+                    Cerita misi muncul di sini.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANEL PERTANYAAN & INTERAKSI ANALISIS ALAT (Papan Perkamen) -->
+        <div class="parchment-panel rounded-2xl p-3 sm:p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <!-- Pertanyaan Utama -->
+            <div class="bg-amber-800 text-amber-50 px-3.5 py-2 rounded-xl mb-3 flex items-center justify-between gap-2 shadow">
+              <h3 id="question-text" class="font-game text-sm sm:text-base md:text-lg tracking-wide">
+                Pertanyaan misi muncul di sini
+              </h3>
+              <span id="question-type-tag" class="shrink-0 bg-amber-400 text-amber-950 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full uppercase">
+                Tantangan
+              </span>
+            </div>
+
+            <!-- KOTAK HINT AKTIF DARI PUSAT BANTUAN (Hanya muncul jika siswa membutuhkannya) -->
+            <div id="help-hint-box" class="hidden border-2 rounded-xl p-3 mb-3 text-xs sm:text-sm animate-pop">
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <span id="help-hint-title" class="font-extrabold flex items-center gap-1.5"></span>
+                <div class="flex items-center gap-2">
+                  <button type="button" onclick="speakHelpAudio()" id="btn-tts-help" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <span>🔊</span> <span>Dengarkan</span>
+                  </button>
+                  <button type="button" onclick="hideActiveHelp()" class="text-xs font-bold opacity-75 hover:opacity-100">✕ Tutup</button>
+                </div>
+              </div>
+              <div id="help-hint-content" class="leading-relaxed"></div>
+            </div>
+
+            <!-- MODE A: 3 Opsi Kartu Jawaban + Soal Hitung Fisika Bertahap (Diketahui, Ditanyakan, Dijawab) -->
+            <div id="non-lever-box" class="mb-3 space-y-3">
+              <div class="bg-white border-2 border-amber-700 rounded-2xl p-3 shadow-sm">
+                <div class="text-xs sm:text-sm font-extrabold text-amber-950 mb-2">
+                  Langkah 1: Pilih alat pesawat sederhana yang paling tepat untuk masalah di atas!
+                </div>
+                <div id="options-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                  <!-- Diisi otomatis via JS -->
+                </div>
+              </div>
+
+              <!-- Langkah 2: Identifikasi Soal & Perhitungan Fisika (Diketahui, Ditanyakan, Dijawab) -->
+              <div class="bg-amber-100/90 border-2 border-amber-700 rounded-2xl p-3 space-y-2.5">
+                <div id="calc-question-nonlever" class="text-xs sm:text-sm font-extrabold text-amber-950">
+                  Langkah 2: Identifikasi soal & hitung nilai fisika yang diminta!
+                </div>
+
+                <!-- 2A. Diketahui -->
+                <div class="bg-white/90 border border-amber-400 rounded-xl p-2.5">
+                  <div class="text-[11px] sm:text-xs font-extrabold text-sky-900 mb-1.5">
+                    A. Diketahui (ketik angka yang sesuai dari cerita untuk setiap besaran):
+                  </div>
+                  <div id="known-inputs-nonlever" class="grid grid-cols-1 sm:grid-cols-3 gap-2"></div>
+                </div>
+
+                <!-- 2B. Ditanyakan -->
+                <div class="bg-white/90 border border-amber-400 rounded-xl p-2.5">
+                  <div class="text-[11px] sm:text-xs font-extrabold text-amber-900 mb-1.5">
+                    B. Ditanyakan (pilih simbol besaran yang dicari):
+                  </div>
+                  <div id="asked-options-nonlever" class="grid grid-cols-1 sm:grid-cols-3 gap-1.5"></div>
+                </div>
+
+                <!-- 2C. Dijawab (Rumus & Ketik Hasil Angka) -->
+                <div class="bg-white/90 border border-amber-400 rounded-xl p-2.5">
+                  <div class="text-[11px] sm:text-xs font-extrabold text-emerald-900 mb-1.5">
+                    C. Dijawab (pilih rumus yang sesuai & ketik hasil perhitunganmu):
+                  </div>
+                  <div id="formula-options-nonlever" class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mb-2"></div>
+                  <div id="answer-input-nonlever" class="flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-300 rounded-lg p-2"></div>
+                </div>
+
+                <button type="button" id="btn-submit-nonlever" onclick="checkNonLeverMission()"
+                  class="game-btn w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-xs sm:text-sm border border-emerald-300">
+                  ✔️ Periksa Jawaban Alat, Identifikasi & Hitungan
+                </button>
+              </div>
+            </div>
+
+            <!-- MODE B: LAB IDENTIFIKASI TITIK TUMPU (T), BEBAN (B), KUASA (K), JENIS TUAS & HITUNG GAYA/KM BERTAHAP -->
+            <div id="lever-lab-box" class="hidden mb-3 space-y-3 animate-pop">
+              <!-- Langkah 1: Siswa memasang sendiri pin T, B, K pada gambar alat nyata -->
+              <div class="bg-white border-2 border-amber-700 rounded-2xl p-3 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <span class="text-xs sm:text-sm font-extrabold text-amber-950">
+                    Langkah 1: Pilih pin di bawah, lalu klik tanda (?) yang tepat pada gambar alat!
+                  </span>
+                  <button type="button" onclick="clearLeverPins()" class="text-xs bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold px-2.5 py-1 rounded-lg">
+                    ↺ Reset Pin
+                  </button>
+                </div>
+
+                <!-- Pilihan Pin Komponen (Tumpu, Beban, Kuasa) -->
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                  <button type="button" id="pin-btn-T" onclick="selectPinType('T')"
+                    class="pin-selector border-2 border-rose-600 bg-rose-100 text-rose-950 rounded-xl py-1.5 px-2 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition">
+                    <span class="w-5 h-5 rounded-full bg-rose-600 text-white text-xs flex items-center justify-center">T</span>
+                    <span>Titik Tumpu</span>
+                  </button>
+                  <button type="button" id="pin-btn-B" onclick="selectPinType('B')"
+                    class="pin-selector border-2 border-blue-400 bg-blue-50 text-blue-950 rounded-xl py-1.5 px-2 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition">
+                    <span class="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">B</span>
+                    <span>Beban</span>
+                  </button>
+                  <button type="button" id="pin-btn-K" onclick="selectPinType('K')"
+                    class="pin-selector border-2 border-emerald-400 bg-emerald-50 text-emerald-950 rounded-xl py-1.5 px-2 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition">
+                    <span class="w-5 h-5 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">K</span>
+                    <span>Kuasa</span>
+                  </button>
+                </div>
+
+                <!-- Kanvas Gambar Alat Besar dengan 3 Titik Hotspot -->
+                <div id="lever-interactive-canvas" class="relative w-full max-w-md mx-auto h-44 sm:h-52 bg-amber-50/90 border-2 border-dashed border-amber-600 rounded-2xl flex items-center justify-center overflow-hidden">
+                  <!-- Gambar SVG alat yang digunakan + 3 titik hotspot interaktif -->
+                </div>
+              </div>
+
+              <!-- Langkah 2: Siswa menyimpulkan sendiri Jenis Tuas I, II, atau III -->
+              <div class="bg-amber-100/90 border-2 border-amber-700 rounded-2xl p-3">
+                <div class="text-xs sm:text-sm font-extrabold text-amber-950 mb-2">
+                  Langkah 2: Berdasarkan posisi pin yang kamu pasang, alat ini termasuk tuas jenis ke berapa?
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button type="button" onclick="selectLeverType(1)" id="lever-type-1"
+                    class="lever-type-btn bg-white hover:bg-amber-50 border-2 border-amber-600 rounded-xl py-2 px-2 text-center font-game text-xs sm:text-sm text-stone-900 transition">
+                    Tuas Jenis I
+                  </button>
+                  <button type="button" onclick="selectLeverType(2)" id="lever-type-2"
+                    class="lever-type-btn bg-white hover:bg-amber-50 border-2 border-amber-600 rounded-xl py-2 px-2 text-center font-game text-xs sm:text-sm text-stone-900 transition">
+                    Tuas Jenis II
+                  </button>
+                  <button type="button" onclick="selectLeverType(3)" id="lever-type-3"
+                    class="lever-type-btn bg-white hover:bg-amber-50 border-2 border-amber-600 rounded-xl py-2 px-2 text-center font-game text-xs sm:text-sm text-stone-900 transition">
+                    Tuas Jenis III
+                  </button>
+                </div>
+              </div>
+
+              <!-- Langkah 3: Identifikasi Soal (Diketahui, Ditanyakan, Dijawab) pada Tuas -->
+              <div class="bg-white border-2 border-amber-700 rounded-2xl p-3 shadow-sm space-y-2.5">
+                <div id="calc-question-lever" class="text-xs sm:text-sm font-extrabold text-amber-950">
+                  Langkah 3: Identifikasi soal (Diketahui, Ditanyakan, Dijawab) untuk tuas ini!
+                </div>
+
+                <!-- 3A. Diketahui -->
+                <div class="bg-amber-50/90 border border-amber-300 rounded-xl p-2.5">
+                  <div class="text-[11px] sm:text-xs font-extrabold text-sky-900 mb-1.5">
+                    A. Diketahui (ketik angka yang sesuai dari cerita untuk setiap besaran):
+                  </div>
+                  <div id="known-inputs-lever" class="grid grid-cols-1 sm:grid-cols-3 gap-2"></div>
+                </div>
+
+                <!-- 3B. Ditanyakan -->
+                <div class="bg-amber-50/90 border border-amber-300 rounded-xl p-2.5">
+                  <div class="text-[11px] sm:text-xs font-extrabold text-amber-900 mb-1.5">
+                    B. Ditanyakan (pilih simbol besaran yang harus dihitung):
+                  </div>
+                  <div id="asked-options-lever" class="grid grid-cols-1 sm:grid-cols-3 gap-1.5"></div>
+                </div>
+
+                <!-- 3C. Dijawab (Rumus & Ketik Hasil Angka) -->
+                <div class="bg-amber-50/90 border border-amber-300 rounded-xl p-2.5">
+                  <div class="text-[11px] sm:text-xs font-extrabold text-emerald-900 mb-1.5">
+                    C. Dijawab (pilih rumus yang sesuai & ketik hasil perhitunganmu):
+                  </div>
+                  <div id="formula-options-lever" class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mb-2"></div>
+                  <div id="answer-input-lever" class="flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-300 rounded-lg p-2"></div>
+                </div>
+
+                <button type="button" id="btn-submit-lever" onclick="checkLeverAnalysis()"
+                  class="game-btn w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-xs sm:text-sm border border-emerald-300">
+                  ✔️ Periksa Analisis Tuas, Identifikasi & Hitungan
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- AREA UMPAN BALIK & TOMBOL LANJUT -->
+          <div id="feedback-area" class="hidden rounded-xl p-3 border-2 flex flex-col sm:flex-row items-center justify-between gap-3 animate-pop">
+            <div class="flex items-start gap-2.5">
+              <span id="feedback-icon" class="text-2xl shrink-0">✅</span>
+              <div>
+                <h4 id="feedback-title" class="font-game text-sm sm:text-base font-bold">Judul Feedback</h4>
+                <p id="feedback-desc" class="text-xs sm:text-sm leading-snug">Penjelasan ilmiah singkat muncul di sini.</p>
+              </div>
+            </div>
+
+            <button onclick="nextMission()" id="btn-next"
+              class="game-btn shrink-0 w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 border border-emerald-300">
+              <span>Misi Berikutnya</span> <span>➡️</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- MODAL DETAIL ALAT SAAT DIKLIK DI SIDEBAR -->
+  <div id="tool-detail-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="parchment-panel max-w-md w-full rounded-3xl p-5 text-center relative animate-pop">
+      <button onclick="closeModal('tool-detail-modal')" class="absolute top-3 right-3 bg-rose-600 text-white w-8 h-8 rounded-full font-bold hover:bg-rose-500">✕</button>
+      <div id="modal-tool-svg" class="w-28 h-28 mx-auto bg-white border-2 border-amber-600 rounded-2xl p-2 mb-3 flex items-center justify-center shadow"></div>
+      <span id="modal-tool-badge" class="inline-block bg-emerald-700 text-white text-xs font-bold px-3 py-1 rounded-full mb-1">Jenis Pesawat Sederhana</span>
+      <h3 id="modal-tool-name" class="font-game text-2xl text-amber-950 mb-1">Nama Alat</h3>
+      <p id="modal-tool-principle" class="text-xs font-bold text-amber-800 mb-2">Prinsip Kerja</p>
+      <p id="modal-tool-desc" class="text-sm text-stone-700 bg-white/80 p-3 rounded-xl border border-amber-300 mb-4 leading-relaxed">Deskripsi alat</p>
+      <button onclick="closeModal('tool-detail-modal')" class="game-btn bg-amber-800 text-white px-6 py-2 rounded-xl font-bold text-sm">Tutup</button>
+    </div>
+  </div>
+
+  <!-- MODAL PUSAT BANTUAN (MUNCULKAN HINT SESUAI KEBUTUHAN SISWA) -->
+  <div id="help-center-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 hidden items-center justify-center p-2 sm:p-4">
+    <div class="parchment-panel max-w-2xl w-full max-h-[92vh] overflow-y-auto rounded-3xl p-4 sm:p-6 relative animate-pop">
+      <div class="flex items-center justify-between border-b-2 border-amber-700 pb-3 mb-3">
+        <div>
+          <h2 class="font-game text-lg sm:text-2xl text-amber-950 flex items-center gap-2">
+            <span>🆘</span> <span>Pusat Bantuan Belajar</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-stone-700">Semua misi dan soal sama untuk semua siswa. Pilih jenis bantuan di bawah ini hanya jika kamu membutuhkannya:</p>
+        </div>
+        <button onclick="closeModal('help-center-modal')" class="bg-rose-600 text-white w-8 h-8 rounded-full font-bold hover:bg-rose-500 shrink-0">✕</button>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3">
+        <!-- Bantuan 1: Petunjuk Visual & Letak Bagian Alat -->
+        <button type="button" onclick="activateHelpHint('visual')"
+          class="text-left rounded-2xl p-3.5 sm:p-4 border-2 transition cursor-pointer bg-white hover:bg-emerald-50 border-amber-600 shadow-xs">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="font-game text-base sm:text-lg text-emerald-900 flex items-center gap-2">
+              <span class="text-xl">👀</span>
+              <span>Bantuan 1: Petunjuk Gambar & Bagian Alat</span>
+            </span>
+            <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Tampilkan Hint</span>
+          </div>
+          <p class="text-xs sm:text-sm text-stone-700">
+            Membantu mengenali bentuk alat yang tepat atau letak <b>Titik Tumpu (T)</b>, <b>Beban (B)</b>, dan <b>Kuasa (K)</b> pada gambar.
+          </p>
+        </button>
+
+        <!-- Bantuan 2: Panduan Identifikasi Soal (Diketahui & Ditanyakan) -->
+        <button type="button" onclick="activateHelpHint('identify')"
+          class="text-left rounded-2xl p-3.5 sm:p-4 border-2 transition cursor-pointer bg-white hover:bg-indigo-50 border-amber-600 shadow-xs">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="font-game text-base sm:text-lg text-indigo-900 flex items-center gap-2">
+              <span class="text-xl">🔎</span>
+              <span>Bantuan 2: Cara Mengidentifikasi Diketahui & Ditanyakan</span>
+            </span>
+            <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800">Tampilkan Hint</span>
+          </div>
+          <p class="text-xs sm:text-sm text-stone-700">
+            Membantu menerjemahkan kalimat cerita menjadi simbol fisika (<b>W, F, s, h, lb, lk, KM</b>) serta membedakan mana yang <b>Diketahui</b> dan mana yang <b>Ditanyakan</b>.
+          </p>
+        </button>
+
+        <!-- Bantuan 3: Panduan Berhitung & Langkah Rumus -->
+        <button type="button" onclick="activateHelpHint('numeracy')"
+          class="text-left rounded-2xl p-3.5 sm:p-4 border-2 transition cursor-pointer bg-white hover:bg-sky-50 border-amber-600 shadow-xs">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="font-game text-base sm:text-lg text-sky-900 flex items-center gap-2">
+              <span class="text-xl">🔢</span>
+              <span>Bantuan 3: Panduan Berhitung & Langkah Rumus</span>
+            </span>
+            <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800">Tampilkan Hint</span>
+          </div>
+          <p class="text-xs sm:text-sm text-stone-700">
+            Menampilkan rumus yang digunakan, cara memasukkan angka ke dalam rumus, serta urutan pembagian/perkalian langkah demi langkah.
+          </p>
+        </button>
+
+        <!-- Bantuan 4: Ringkasan Kalimat Sederhana & Pembaca Suara -->
+        <button type="button" onclick="activateHelpHint('audio_simple')"
+          class="text-left rounded-2xl p-3.5 sm:p-4 border-2 transition cursor-pointer bg-white hover:bg-amber-50 border-amber-600 shadow-xs">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="font-game text-base sm:text-lg text-amber-950 flex items-center gap-2">
+              <span class="text-xl">🗣️</span>
+              <span>Bantuan 4: Kalimat Ringkas & Pembaca Suara</span>
+            </span>
+            <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950">Tampilkan Hint</span>
+          </div>
+          <p class="text-xs sm:text-sm text-stone-700">
+            Menampilkan inti masalah dalam kalimat pendek yang mudah dipahami beserta tombol <b>Bacakan Suara</b> untuk mendengarkan soal.
+          </p>
+        </button>
+      </div>
+
+      <div class="mt-4 flex justify-between items-center">
+        <button type="button" onclick="hideActiveHelp(); closeModal('help-center-modal');" class="text-xs sm:text-sm font-bold text-rose-700 hover:underline">
+          Sembunyikan Hint di Layar
+        </button>
+        <button onclick="closeModal('help-center-modal')" class="game-btn bg-amber-800 text-white px-5 py-2 rounded-xl font-bold text-sm">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL HASIL AKHIR GAME -->
+  <div id="victory-modal" class="fixed inset-0 bg-black/80 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="parchment-panel max-w-md w-full rounded-3xl p-6 text-center animate-pop border-4 border-yellow-500">
+      <div class="text-5xl mb-2">🏆</div>
+      <h2 class="font-game text-2xl sm:text-3xl text-amber-950 mb-1">Misi Selesai!</h2>
+      <p class="text-sm text-stone-700 mb-4">Kamu telah membantu kelompok tani di lereng Gunung Sindoro–Sumbing menyelesaikan pekerjaan panen dengan prinsip pesawat sederhana.</p>
+
+      <div class="bg-amber-900 text-amber-50 rounded-2xl p-4 mb-4 border-2 border-amber-500">
+        <div class="text-xs uppercase tracking-wider text-amber-300 font-bold">Total Skor Akhir</div>
+        <div id="final-score" class="font-game text-4xl font-bold text-yellow-300 my-1">100</div>
+        <div id="final-predicate" class="text-xs font-semibold text-emerald-300">Ahli Pesawat Sederhana Temanggung!</div>
+      </div>
+
+      <button onclick="resetGame()" class="game-btn w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold text-base border border-emerald-300">
+        🔄 Mainkan Lagi dari Awal
+      </button>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT UTAMA GAME -->
+  <script>
+    /**
+     * ============================================================================
+     * 1. ASET SVG KHUSUS SETIAP ALAT (AKURAT & SESUAI BENTUK NYATA)
+     * ============================================================================
+     */
+    const SVG_ICONS = {
+      gunting: `
+        <svg viewBox="0 0 120 120" class="w-full h-full">
+          <g stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M55,60 L102,38 L95,49 L58,64 Z" fill="#cbd5e1"/>
+            <path d="M55,60 L102,82 L95,71 L58,56 Z" fill="#94a3b8"/>
+            <path d="M55,60 L34,42" stroke="#dc2626" stroke-width="5"/>
+            <circle cx="25" cy="36" r="12" fill="none" stroke="#dc2626" stroke-width="5"/>
+            <path d="M55,60 L34,78" stroke="#dc2626" stroke-width="5"/>
+            <circle cx="25" cy="84" r="12" fill="none" stroke="#dc2626" stroke-width="5"/>
+            <circle cx="57" cy="60" r="3.5" fill="#f59e0b"/>
+          </g>
+        </svg>`,
+
+      pemecah_kemiri: `
+        <svg viewBox="0 0 120 120" class="w-full h-full">
+          <g stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22,60 C28,42 46,42 58,52 L100,28 L104,35 L58,58 C46,50 32,50 22,60 Z" fill="#94a3b8"/>
+            <path d="M22,60 C28,78 46,78 58,68 L100,92 L104,85 L58,62 C46,70 32,70 22,60 Z" fill="#64748b"/>
+            <path d="M72,44 L100,28 L104,35 L76,51 Z" fill="#ea580c"/>
+            <path d="M72,76 L100,92 L104,85 L76,69 Z" fill="#ea580c"/>
+            <circle cx="24" cy="60" r="4" fill="#f59e0b"/>
+            <ellipse cx="45" cy="60" rx="10" ry="8" fill="#d97706"/>
+            <path d="M40,56 Q45,60 41,64" fill="none" stroke="#fef3c7" stroke-width="1.5"/>
+          </g>
+        </svg>`,
+
+      pembuka_botol: `
+        <svg viewBox="0 0 120 120" class="w-full h-full">
+          <g stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="46" y="18" width="28" height="10" rx="2" fill="#ef4444"/>
+            <path d="M49,28 L71,28 L74,42 L46,42 Z" fill="#16a34a" opacity="0.7"/>
+            <rect x="52" y="54" width="16" height="48" rx="7" fill="#b45309"/>
+            <path d="M55,54 L55,20 Q60,13 65,20 L65,54 Z" fill="#cbd5e1"/>
+            <path d="M55,34 L63,34 L63,39 L55,39 Z" fill="#475569"/>
+          </g>
+        </svg>`,
+
+      sekop: `
+        <svg viewBox="0 0 120 120" class="w-full h-full">
+          <g stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M84,22 L98,36 M91,29 L82,38" stroke="#b45309" stroke-width="5"/>
+            <line x1="86" y1="34" x2="46" y2="74" stroke="#d97706" stroke-width="6"/>
+            <path d="M42,68 L54,80 L34,100 Q20,104 22,88 Z" fill="#64748b"/>
+            <path d="M36,78 L46,88" stroke="#cbd5e1" stroke-width="2"/>
+          </g>
+        </svg>`,
+
+      katrol_sumur: `
+        <svg viewBox="0 0 120 120" class="w-full h-full">
+          <g stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="20" y="88" width="80" height="16" rx="2" fill="#9ca3af"/>
+            <path d="M30,88 L30,22 L90,22 L90,88" fill="none" stroke="#78350f" stroke-width="5"/>
+            <circle cx="60" cy="36" r="11" fill="#cbd5e1"/>
+            <circle cx="60" cy="36" r="3" fill="#f59e0b"/>
+            <line x1="60" y1="22" x2="60" y2="36" stroke="#475569" stroke-width="3"/>
+            <line x1="49" y1="36" x2="49" y2="68" stroke="#d97706" stroke-width="2.5"/>
+            <line x1="71" y1="36" x2="78" y2="76" stroke="#d97706" stroke-width="2.5"/>
+            <polygon points="41,68 57,68 55,84 43,84" fill="#2563eb"/>
+            <path d="M42,68 Q49,59 56,68" fill="none" stroke="#1e293b" stroke-width="2"/>
+          </g>
+        </svg>`,
+
+      katrol_derek: `
+        <svg viewBox="0 0 120 120" class="w-full h-full">
+          <g stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="25" y1="16" x2="95" y2="16" stroke="#475569" stroke-width="6"/>
+            <circle cx="60" cy="32" r="10" fill="#94a3b8"/>
+            <circle cx="60" cy="32" r="3" fill="#f59e0b"/>
+            <circle cx="60" cy="64" r="10" fill="#cbd5e1"/>
+            <circle cx="60" cy="64" r="3" fill="#f59e0b"/>
+            <line x1="50" y1="32" x2="50" y2="64" stroke="#eab308" stroke-width="2.5"/>
+            <line x1="70" y1="32" x2="70" y2="64" stroke="#eab308" stroke-width="2.5"/>
+            <line x1="70" y1="32" x2="88" y2="75" stroke="#eab308" stroke-width="2.5"/>
+            <path d="M60,74 L60,82 Q65,86 58,88" fill="none" stroke="#334155" stroke-width="3"/>
+            <rect x="42" y="88" width="36" height="20" rx="3" fill="#d97706"/>
+          </g>
+        </svg>`,
+
+      papan_tanjakan: `
+        <svg viewBox="0 0 120 120" class="w-full h-full">
+          <g stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="10" y1="96" x2="110" y2="96" stroke="#15803d" stroke-width="4"/>
+            <rect x="74" y="64" width="34" height="22" rx="2" fill="#2563eb"/>
+            <rect x="92" y="52" width="16" height="12" rx="2" fill="#3b82f6"/>
+            <circle cx="82" cy="90" r="6" fill="#1e293b"/>
+            <circle cx="100" cy="90" r="6" fill="#1e293b"/>
+            <polygon points="18,95 76,66 78,71 20,96" fill="#d97706"/>
+            <rect x="38" y="68" width="16" height="14" rx="4" transform="rotate(-26 46 75)" fill="#eab308"/>
+          </g>
+        </svg>`,
+
+      jalan_berkelok: `
+        <svg viewBox="0 0 120 120" class="w-full h-full">
+          <g stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="10,102 60,22 110,102" fill="#16a34a"/>
+            <polygon points="48,41 60,22 72,41 64,45 60,40 55,45" fill="#e2e8f0"/>
+            <path d="M22,102 C65,98 85,88 55,78 C30,70 40,60 68,54 C80,51 72,44 60,41"
+                  fill="none" stroke="#475569" stroke-width="8"/>
+            <path d="M22,102 C65,98 85,88 55,78 C30,70 40,60 68,54 C80,51 72,44 60,41"
+                  fill="none" stroke="#f8fafc" stroke-width="1.5" stroke-dasharray="4,4"/>
+          </g>
+        </svg>`,
+
+      pisau: `
+        <svg viewBox="0 0 120 120" class="w-full h-full">
+          <g stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M52,58 L98,24 Q104,36 90,48 L58,66 Z" fill="#e2e8f0"/>
+            <path d="M22,82 L52,58 L59,66 L29,90 Q21,90 22,82 Z" fill="#78350f"/>
+            <circle cx="34" cy="79" r="2" fill="#fbbf24"/>
+            <circle cx="46" cy="69" r="2" fill="#fbbf24"/>
+          </g>
+        </svg>`,
+
+      kapak: `
+        <svg viewBox="0 0 120 120" class="w-full h-full">
+          <g stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M36,96 L78,26 L85,30 L43,100 Z" fill="#b45309"/>
+            <path d="M68,34 L88,44 L80,62 Q64,54 58,46 Z" fill="#64748b"/>
+            <path d="M80,62 Q64,54 58,46 L61,42 Q67,50 82,58 Z" fill="#e2e8f0"/>
+          </g>
+        </svg>`
+    };
+
+    /**
+     * ============================================================================
+     * 2. DATABASE 10 ALAT PESAWAT SEDERHANA (TANPA BOCORAN JENIS TUAS I/II/III)
+     * ============================================================================
+     */
+    const TOOLS_DATA = [
+      {
+        id: 'gunting',
+        name: 'Gunting',
+        category: 'tuas',
+        categoryLabel: 'Tuas / Pengungkit',
+        principle: 'Memiliki poros engsel, bilah pemotong, dan pegangan jari.',
+        desc: 'Digunakan di kebun dan pos pengemasan Temanggung untuk memotong tali karung kopi dan kemasan bibit.',
+        icon: SVG_ICONS.gunting
+      },
+      {
+        id: 'pemecah_kemiri',
+        name: 'Pemecah Kemiri',
+        category: 'tuas',
+        categoryLabel: 'Tuas / Pengungkit',
+        principle: 'Memiliki engsel di ujung, ruang jepit di tengah, dan gagang tekan.',
+        desc: 'Digunakan di dapur kelompok tani untuk memecahkan cangkang kemiri dengan gaya remas yang ringan.',
+        icon: SVG_ICONS.pemecah_kemiri
+      },
+      {
+        id: 'pembuka_botol',
+        name: 'Pembuka Botol',
+        category: 'tuas',
+        categoryLabel: 'Tuas / Pengungkit',
+        principle: 'Memiliki ujung penahan di atas tutup, pengait di tepi tutup, dan gagang.',
+        desc: 'Digunakan saat istirahat di saung kebun untuk mencongkel tutup botol minuman bersegel.',
+        icon: SVG_ICONS.pembuka_botol
+      },
+      {
+        id: 'sekop',
+        name: 'Sekop',
+        category: 'tuas',
+        categoryLabel: 'Tuas / Pengungkit',
+        principle: 'Memiliki pegangan ujung atas, batang tengah, dan daun sekop penampung.',
+        desc: 'Digunakan untuk mengeruk pupuk kompos dan membalik hamparan biji kopi saat dijemur.',
+        icon: SVG_ICONS.sekop
+      },
+      {
+        id: 'katrol_sumur',
+        name: 'Katrol Timba Sumur',
+        category: 'katrol',
+        categoryLabel: 'Katrol Tetap',
+        principle: 'Poros katrol terpasang tetap pada tiang (KM = 1).',
+        desc: 'Mengubah arah gaya tarik ke bawah sehingga mengambil air sumur terasa lebih nyaman.',
+        icon: SVG_ICONS.katrol_sumur
+      },
+      {
+        id: 'katrol_derek',
+        name: 'Katrol Derek Barang',
+        category: 'katrol',
+        categoryLabel: 'Katrol Majemuk (Takal)',
+        principle: 'Gabungan katrol tetap & bebas (KM = jumlah tali penopang).',
+        desc: 'Melipatgandakan gaya angkat untuk menaikkan mesin huller kopi atau karung berat ke gudang.',
+        icon: SVG_ICONS.katrol_derek
+      },
+      {
+        id: 'papan_tanjakan',
+        name: 'Papan Tanjakan',
+        category: 'bidang_miring',
+        categoryLabel: 'Bidang Miring Lurus',
+        principle: 'Lintasan miring (KM = panjang papan / tinggi bak).',
+        desc: 'Memudahkan petani mendorong karung hasil panen ke atas bak truk tanpa mengangkat vertikal.',
+        icon: SVG_ICONS.papan_tanjakan
+      },
+      {
+        id: 'jalan_berkelok',
+        name: 'Jalan Berkelok',
+        category: 'bidang_miring',
+        categoryLabel: 'Bidang Miring Pegunungan',
+        principle: 'Memperpanjang lintasan tanjakan agar kemiringan landai.',
+        desc: 'Diterapkan di jalur lereng Gunung Sindoro–Sumbing agar kendaraan pengangkut aman menanjak.',
+        icon: SVG_ICONS.jalan_berkelok
+      },
+      {
+        id: 'pisau',
+        name: 'Pisau',
+        category: 'bidang_miring',
+        categoryLabel: 'Bidang Miring (Baji)',
+        principle: 'Dua bidang miring bertemu pada mata bilah tipis.',
+        desc: 'Memusatkan gaya tekan pada ujung tajam untuk memangkas tunas kopi dan memotong hasil kebun.',
+        icon: SVG_ICONS.pisau
+      },
+      {
+        id: 'kapak',
+        name: 'Kapak',
+        category: 'bidang_miring',
+        categoryLabel: 'Bidang Miring (Baji)',
+        principle: 'Kepala logam berbentuk baji untuk membelah serat kayu.',
+        desc: 'Digunakan membelah kayu bakar tungku pengeringan tembakau dan kopi di Temanggung.',
+        icon: SVG_ICONS.kapak
+      }
+    ];
+
+    /**
+     * ============================================================================
+     * 3. 10 MISI PERMAINAN KONTEKSTUAL LERENG SINDORO-SUMBING + SOAL PERHITUNGAN
+     * ============================================================================
+     */
+    const MISSIONS = [
+      {
+        mode: 'select_tool',
+        location: '📍 Jalan Desa Lereng Sindoro',
+        category: 'Bidang Miring Lurus (KM = s / h)',
+        visual: SVG_ICONS.papan_tanjakan,
+        title: 'Misi 1: Menaikkan Karung Kopi ke Bak Truk',
+        story: 'Pak Budi harus menaikkan karung biji kopi seberat 400 N ke bak truk setinggi h = 1,2 meter menggunakan papan miring sepanjang s = 3,6 meter.',
+        question: 'Pilih alat yang tepat, masukkan angka Diketahui, pilih Ditanyakan, lalu hitung KM papan!',
+        tag: 'Alat & Hitung KM',
+        options: ['papan_tanjakan', 'gunting', 'pembuka_botol'],
+        correct: 'papan_tanjakan',
+        calcQuestion: 'Langkah 2: Masukkan angka Diketahui, pilih Ditanyakan, dan ketik hasil KM papan tanjakan!',
+        knownFields: [
+          { key: 'W', label: 'Berat beban (W)', unit: 'N', expected: 400 },
+          { key: 's', label: 'Panjang papan (s)', unit: 'm', expected: 3.6 },
+          { key: 'h', label: 'Tinggi bak (h)', unit: 'm', expected: 1.2 }
+        ],
+        askedOptions: [
+          { id: 'a1', label: 'Keuntungan Mekanis (KM)' },
+          { id: 'a2', label: 'Gaya dorong (F)' },
+          { id: 'a3', label: 'Tinggi bak truk (h)' }
+        ],
+        correctAsked: 'a1',
+        formulaOptions: [
+          { id: 'f1', label: 'KM = h ÷ s' },
+          { id: 'f2', label: 'KM = s ÷ h' },
+          { id: 'f3', label: 'KM = s + h' }
+        ],
+        correctFormula: 'f2',
+        answerField: { symbol: 'KM =', unit: 'kali', expected: 3 },
+        hints: {
+          visual: '👀 <b>Petunjuk Visual:</b> Perhatikan alat berbentuk bidang miring lurus yang menghubungkan tanah ke bagian belakang kendaraan angkut.',
+          identify: '🔎 <b>Cara Identifikasi Soal:</b><br>• Cari di cerita mana angka yang menyatakan <b>berat karung (W)</b>, <b>panjang lintasan miring (s)</b>, dan <b>ketinggian vertikal bak truk (h)</b>.<br>• Baca kalimat pertanyaan terakhir untuk menentukan besaran apa yang dicari pada bagian <b>Ditanyakan</b>.',
+          numeracy: '🔢 <b>Panduan Analisis Hitungan KM:</b><br>• Keuntungan Mekanis (KM) bidang miring membandingkan <b>panjang lintasan miring (s)</b> terhadap <b>tinggi tegaknya (h)</b>.<br>• Tuliskan rumus pembagiannya, substitusikan angka <i>s</i> dan <i>h</i> yang sudah kamu temukan, lalu hitung hasilnya!',
+          audio_simple: '🗣️ <b>Inti Analisis:</b> Temukan berat beban, panjang papan, dan tinggi bak dari cerita. Bandingkan panjang papan dengan tinggi bak untuk mencari Keuntungan Mekanis.'
+        },
+        explanation: 'Tepat! Diketahui W = 400 N, s = 3,6 m, h = 1,2 m; Ditanyakan KM; Dijawab KM = s / h = 3,6 / 1,2 = 3 kali.'
+      },
+      {
+        mode: 'lever_lab',
+        toolId: 'gunting',
+        location: '📍 Pos Pengemasan Karung Kopi',
+        category: 'Analisis Tuas & Hitung Gaya (F)',
+        visual: SVG_ICONS.gunting,
+        title: 'Misi 2: Memotong Tali Pengikat Karung dengan Gunting',
+        story: 'Bu Sari memakai GUNTING untuk memotong tali rafia dengan hambatan beban W = 60 N. Panjang lengan beban lb = 3 cm dan lengan kuasa lk = 9 cm.',
+        question: 'Pasang pin T, B, K pada gunting, tentukan jenis tuasnya, lalu isi Diketahui, Ditanyakan & hitung F!',
+        tag: 'Tuas & Hitung Gaya',
+        hotspots: [
+          { id: 'h1', x: 24, y: 50, expected: 'K', labelHint: 'Gagang tempat jari menekan' },
+          { id: 'h2', x: 49, y: 50, expected: 'T', labelHint: 'Poros sekrup di tengah bilah' },
+          { id: 'h3', x: 78, y: 34, expected: 'B', labelHint: 'Ujung bilah yang memotong tali' }
+        ],
+        correctLeverType: 1,
+        calcQuestion: 'Langkah 3: Masukkan angka Diketahui, pilih Ditanyakan, dan ketik hasil gaya kuasa (F)!',
+        knownFields: [
+          { key: 'W', label: 'Beban tali (W)', unit: 'N', expected: 60 },
+          { key: 'lb', label: 'Lengan beban (lb)', unit: 'cm', expected: 3 },
+          { key: 'lk', label: 'Lengan kuasa (lk)', unit: 'cm', expected: 9 }
+        ],
+        askedOptions: [
+          { id: 'a1', label: 'Gaya kuasa tangan (F)' },
+          { id: 'a2', label: 'Keuntungan Mekanis (KM)' },
+          { id: 'a3', label: 'Gaya hambatan tali (W)' }
+        ],
+        correctAsked: 'a1',
+        formulaOptions: [
+          { id: 'f1', label: 'F = (W × lb) ÷ lk' },
+          { id: 'f2', label: 'F = (W × lk) ÷ lb' },
+          { id: 'f3', label: 'F = W ÷ (lk - lb)' }
+        ],
+        correctFormula: 'f1',
+        answerField: { symbol: 'F =', unit: 'N', expected: 20 },
+        hints: {
+          visual: '👀 <b>Petunjuk Gambar Tuas:</b><br>• Amati bagian mana yang menjadi <b>poros putar (T)</b>, bagian mana yang <b>menjepit/memotong objek (B)</b>, dan bagian mana yang <b>ditekan tangan (K)</b>.<br>• Perhatikan komponen apa yang berada tepat di tengah untuk menentukan jenis tuasnya.',
+          identify: '🔎 <b>Cara Identifikasi Soal:</b><br>• Pisahkan mana angka untuk <b>gaya hambatan tali (W)</b>, jarak dari poros ke bilah pemotong <b>(lb)</b>, dan jarak dari poros ke pegangan jari <b>(lk)</b>.<br>• Perhatikan besaran gaya tangan yang diminta pada bagian <b>Ditanyakan</b>.',
+          numeracy: '🔢 <b>Panduan Analisis Hitungan Gaya Tuas:</b><br>• Pada kesetimbangan tuas berlaku <b>W × lb = F × lk</b>.<br>• Untuk mencari gaya kuasa (<b>F</b>), kalikan terlebih dahulu <b>W</b> dengan <b>lb</b>, lalu bagi hasilnya dengan <b>lk</b>!',
+          audio_simple: '🗣️ <b>Inti Analisis:</b> Amati bagian tengah gunting untuk menentukan jenis tuasnya. Masukkan nilai beban dan kedua lengan, lalu gunakan prinsip kesetimbangan tuas untuk menghitung gaya kuasa.'
+        },
+        explanation: 'Benar! Gunting adalah Tuas Jenis I. Diketahui W = 60 N, lb = 3 cm, lk = 9 cm; Ditanyakan F; Dijawab F = (60 × 3) / 9 = 20 N.'
+      },
+      {
+        mode: 'select_tool',
+        location: '📍 Jalur Desa Lereng Sumbing',
+        category: 'Bidang Miring Pegunungan (Gaya Dorong)',
+        visual: SVG_ICONS.jalan_berkelok,
+        title: 'Misi 3: Akses Transportasi Lereng Gunung',
+        story: 'Truk bermuatan kopi seberat W = 12.000 N menanjak lereng setinggi h = 50 m melalui jalan berkelok sepanjang s = 300 m.',
+        question: 'Pilih prasarana yang tepat, isi angka Diketahui, pilih Ditanyakan, lalu hitung gaya truk (F)!',
+        tag: 'Alat & Hitung Gaya',
+        options: ['katrol_sumur', 'jalan_berkelok', 'sekop'],
+        correct: 'jalan_berkelok',
+        calcQuestion: 'Langkah 2: Masukkan angka Diketahui, pilih Ditanyakan, dan ketik hasil gaya minimum mesin truk (F)!',
+        knownFields: [
+          { key: 'W', label: 'Berat truk (W)', unit: 'N', expected: 12000 },
+          { key: 's', label: 'Panjang jalan (s)', unit: 'm', expected: 300 },
+          { key: 'h', label: 'Tinggi lereng (h)', unit: 'm', expected: 50 }
+        ],
+        askedOptions: [
+          { id: 'a1', label: 'Gaya dorong minimum truk (F)' },
+          { id: 'a2', label: 'Panjang lintasan jalan (s)' },
+          { id: 'a3', label: 'Berat truk bermuatan (W)' }
+        ],
+        correctAsked: 'a1',
+        formulaOptions: [
+          { id: 'f1', label: 'F = (W × h) ÷ s' },
+          { id: 'f2', label: 'F = (W × s) ÷ h' },
+          { id: 'f3', label: 'F = W ÷ s' }
+        ],
+        correctFormula: 'f1',
+        answerField: { symbol: 'F =', unit: 'N', expected: 2000 },
+        hints: {
+          visual: '👀 <b>Petunjuk Visual:</b> Perhatikan prasarana jalan di lereng gunung yang memperpanjang lintasan agar kemiringan tanjakan menjadi lebih landai.',
+          identify: '🔎 <b>Cara Identifikasi Soal:</b><br>• Identifikasi dari cerita berapa <b>berat total truk (W)</b>, <b>panjang lintasan berkelok (s)</b>, dan <b>ketinggian lereng (h)</b>.<br>• Tentukan simbol gaya minimum yang dibutuhkan mesin truk pada bagian <b>Ditanyakan</b>.',
+          numeracy: '🔢 <b>Panduan Analisis Hitungan Gaya Bidang Miring:</b><br>• Pada bidang miring berlaku perbandingan <b>W ÷ F = s ÷ h</b>.<br>• Kamu bisa mencari <b>KM = s ÷ h</b> terlebih dahulu, lalu membagi berat beban (<b>W</b>) dengan nilai <b>KM</b> tersebut—atau langsung menghitung <b>(W × h) ÷ s</b>!',
+          audio_simple: '🗣️ <b>Inti Analisis:</b> Temukan berat truk, panjang jalan berkelok, dan tinggi lereng. Gunakan perbandingan panjang jalan dan tinggi lereng untuk memperkecil gaya angkat.'
+        },
+        explanation: 'Benar! Diketahui W = 12.000 N, s = 300 m, h = 50 m; Ditanyakan F; Dijawab KM = 6, sehingga F = 12.000 / 6 = 2.000 N.'
+      },
+      {
+        mode: 'lever_lab',
+        toolId: 'pemecah_kemiri',
+        location: '📍 Dapur Kelompok Tani',
+        category: 'Analisis Tuas & Hitung Gaya (F)',
+        visual: SVG_ICONS.pemecah_kemiri,
+        title: 'Misi 4: Memecahkan Biji Kemiri di Dapur Kebun',
+        story: 'Bu Sari memakai PEMECAH KEMIRI untuk memecahkan cangkang kemiri dengan gaya tahan W = 100 N. Jarak engsel ke kemiri lb = 4 cm dan engsel ke gagang tangan lk = 20 cm.',
+        question: 'Pasang pin T, B, K pada pemecah kemiri, tentukan jenis tuasnya, lalu isi & hitung gaya remas (F)!',
+        tag: 'Tuas & Hitung Gaya',
+        hotspots: [
+          { id: 'h1', x: 20, y: 50, expected: 'T', labelHint: 'Engsel di ujung depan alat' },
+          { id: 'h2', x: 42, y: 50, expected: 'B', labelHint: 'Biji kemiri di tengah rahang' },
+          { id: 'h3', x: 76, y: 28, expected: 'K', labelHint: 'Ujung gagang tempat tangan menekan' }
+        ],
+        correctLeverType: 2,
+        calcQuestion: 'Langkah 3: Masukkan angka Diketahui, pilih Ditanyakan, dan ketik hasil gaya remas tangan (F)!',
+        knownFields: [
+          { key: 'W', label: 'Beban kemiri (W)', unit: 'N', expected: 100 },
+          { key: 'lb', label: 'Lengan beban (lb)', unit: 'cm', expected: 4 },
+          { key: 'lk', label: 'Lengan kuasa (lk)', unit: 'cm', expected: 20 }
+        ],
+        askedOptions: [
+          { id: 'a1', label: 'Gaya remas tangan (F)' },
+          { id: 'a2', label: 'Gaya tahan kemiri (W)' },
+          { id: 'a3', label: 'Jarak engsel ke kemiri (lb)' }
+        ],
+        correctAsked: 'a1',
+        formulaOptions: [
+          { id: 'f1', label: 'F = (W × lb) ÷ lk' },
+          { id: 'f2', label: 'F = (W × lk) ÷ lb' },
+          { id: 'f3', label: 'F = W ÷ (lk - lb)' }
+        ],
+        correctFormula: 'f1',
+        answerField: { symbol: 'F =', unit: 'N', expected: 20 },
+        hints: {
+          visual: '👀 <b>Petunjuk Gambar Tuas:</b><br>• Amati letak <b>engsel sambungan logam (T)</b>, letak <b>biji kemiri yang dijepit (B)</b>, dan ujung gagang tempat <b>tangan meremas (K)</b>.<br>• Lihat komponen apa yang terletak di antara dua komponen lainnya.',
+          identify: '🔎 <b>Cara Identifikasi Soal:</b><br>• Tandai dari cerita mana nilai <b>gaya tahan cangkang kemiri (W)</b>, jarak engsel ke kemiri <b>(lb)</b>, dan jarak engsel ke tangan <b>(lk)</b>.<br>• Cek gaya remas yang harus dikeluarkan tangan untuk bagian <b>Ditanyakan</b>.',
+          numeracy: '🔢 <b>Panduan Analisis Hitungan Gaya Tuas:</b><br>• Karena lengan kuasa lebih panjang daripada lengan beban, gaya tangan menjadi lebih ringan.<br>• Gunakan hubungan <b>F = (W × lb) ÷ lk</b>: kalikan <b>W</b> dengan <b>lb</b> terlebih dahulu, lalu bagi dengan <b>lk</b>!',
+          audio_simple: '🗣️ <b>Inti Analisis:</b> Perhatikan posisi biji kemiri di antara engsel dan tangan untuk menentukan jenis tuas. Masukkan nilai W, lb, dan lk, lalu hitung gaya remas tangan.'
+        },
+        explanation: 'Tepat! Pemecah kemiri adalah Tuas Jenis II. Diketahui W = 100 N, lb = 4 cm, lk = 20 cm; Ditanyakan F; Dijawab F = (100 × 4) / 20 = 20 N.'
+      },
+      {
+        mode: 'select_tool',
+        location: '📍 Sumur Halaman Gudang Kopi',
+        category: 'Katrol Tetap (KM = 1)',
+        visual: SVG_ICONS.katrol_sumur,
+        title: 'Misi 5: Mengambil Air Pencuci Biji Kopi',
+        story: 'Bu Sari menimba 1 ember air seberat W = 150 N dari sumur menggunakan katrol tetap (KM = 1) yang terpasang pada tiang kayu.',
+        question: 'Pilih alat katrol yang tepat, isi angka Diketahui, pilih Ditanyakan, lalu hitung gaya tarik (F)!',
+        tag: 'Katrol & Hitung Gaya',
+        options: ['katrol_sumur', 'pemecah_kemiri', 'kapak'],
+        correct: 'katrol_sumur',
+        calcQuestion: 'Langkah 2: Masukkan angka Diketahui, pilih Ditanyakan, dan ketik hasil gaya tarik tali (F)!',
+        knownFields: [
+          { key: 'W', label: 'Berat ember air (W)', unit: 'N', expected: 150 },
+          { key: 'KM', label: 'Keuntungan Mekanis (KM)', unit: 'kali', expected: 1 }
+        ],
+        askedOptions: [
+          { id: 'a1', label: 'Gaya tarik tali oleh Bu Sari (F)' },
+          { id: 'a2', label: 'Berat ember berisi air (W)' },
+          { id: 'a3', label: 'Kedalaman sumur (h)' }
+        ],
+        correctAsked: 'a1',
+        formulaOptions: [
+          { id: 'f1', label: 'F = W × 2' },
+          { id: 'f2', label: 'F = W ÷ KM' },
+          { id: 'f3', label: 'F = W + KM' }
+        ],
+        correctFormula: 'f2',
+        answerField: { symbol: 'F =', unit: 'N', expected: 150 },
+        hints: {
+          visual: '👀 <b>Petunjuk Visual:</b> Perhatikan alat dengan satu roda beralur yang porosnya terpasang diam pada tiang penyangga di atas sumur.',
+          identify: '🔎 <b>Cara Identifikasi Soal:</b><br>• Temukan dari cerita berapa <b>berat ember berisi air (W)</b> dan berapa nilai <b>Keuntungan Mekanis (KM)</b> untuk katrol tetap.<br>• Pilih besaran gaya tarik tali yang ditanyakan.',
+          numeracy: '🔢 <b>Panduan Analisis Hitungan Katrol Tetap:</b><br>• Katrol tetap hanya mengubah arah gaya tarik ke bawah, sehingga besar gaya kuasa sama dengan berat beban dibagi nilai KM-nya (<b>F = W ÷ KM</b>).<br>• Substitusikan nilai <b>W</b> dan <b>KM</b> yang diketahui untuk memperoleh besar <b>F</b>!',
+          audio_simple: '🗣️ <b>Inti Analisis:</b> Temukan berat ember air dan nilai KM katrol tetap dari cerita. Bagi berat beban dengan KM untuk mengetahui gaya tarik tali.'
+        },
+        explanation: 'Hebat! Diketahui W = 150 N dan KM = 1; Ditanyakan F; Dijawab F = 150 / 1 = 150 N (arah gaya tarik ke bawah lebih nyaman).'
+      },
+      {
+        mode: 'lever_lab',
+        toolId: 'sekop',
+        location: '📍 Halaman Jemur & Kompos',
+        category: 'Analisis Tuas & Hitung Gaya (F)',
+        visual: SVG_ICONS.sekop,
+        title: 'Misi 6: Mengeruk Kompos & Membalik Biji Kopi',
+        story: 'Pak Budi mengeruk kompos seberat W = 50 N menggunakan SEKOP. Jarak tangan tumpu atas ke tangan pengangkat tengah lk = 40 cm, sedangkan jarak tumpu atas ke daun sekop lb = 120 cm.',
+        question: 'Pasang pin T, B, K pada sekop, tentukan jenis tuasnya, lalu isi & hitung gaya angkat (F)!',
+        tag: 'Tuas & Hitung Gaya',
+        hotspots: [
+          { id: 'h1', x: 76, y: 22, expected: 'T', labelHint: 'Pegangan ujung atas (tangan penahan)' },
+          { id: 'h2', x: 55, y: 44, expected: 'K', labelHint: 'Tengah batang gagang (tangan pengangkat)' },
+          { id: 'h3', x: 28, y: 74, expected: 'B', labelHint: 'Daun sekop berisi kompos' }
+        ],
+        correctLeverType: 3,
+        calcQuestion: 'Langkah 3: Masukkan angka Diketahui, pilih Ditanyakan, dan ketik hasil gaya angkat tangan tengah (F)!',
+        knownFields: [
+          { key: 'W', label: 'Berat kompos (W)', unit: 'N', expected: 50 },
+          { key: 'lk', label: 'Lengan kuasa (lk)', unit: 'cm', expected: 40 },
+          { key: 'lb', label: 'Lengan beban (lb)', unit: 'cm', expected: 120 }
+        ],
+        askedOptions: [
+          { id: 'a1', label: 'Gaya angkat tangan tengah (F)' },
+          { id: 'a2', label: 'Berat kompos di sekop (W)' },
+          { id: 'a3', label: 'Panjang gagang sekop (lb)' }
+        ],
+        correctAsked: 'a1',
+        formulaOptions: [
+          { id: 'f1', label: 'F = (W × lk) ÷ lb' },
+          { id: 'f2', label: 'F = (W × lb) ÷ lk' },
+          { id: 'f3', label: 'F = W + (lb - lk)' }
+        ],
+        correctFormula: 'f2',
+        answerField: { symbol: 'F =', unit: 'N', expected: 150 },
+        hints: {
+          visual: '👀 <b>Petunjuk Gambar Tuas:</b><br>• Bayangkan cara memegang sekop: tangan atas menahan <b>ujung gagang sebagai poros (T)</b>, tangan tengah mengangkat <b>batang tengah (K)</b>, dan ujung bawah menampung <b>kompos (B)</b>.<br>• Amati komponen yang berada di tengah.',
+          identify: '🔎 <b>Cara Identifikasi Soal:</b><br>• Cermati cerita untuk membedakan mana jarak dari tangan tumpu atas ke tangan tengah <b>(lk)</b> dan mana jarak dari tangan tumpu atas ke daun sekop <b>(lb)</b>, serta <b>berat kompos (W)</b>.<br>• Tentukan besaran yang dicari pada <b>Ditanyakan</b>.',
+          numeracy: '🔢 <b>Panduan Analisis Hitungan Gaya Tuas:</b><br>• Tetap gunakan prinsip kesetimbangan tuas <b>W × lb = F × lk</b>.<br>• Kalikan terlebih dahulu <b>W</b> dengan <b>lb</b>, kemudian bagi hasilnya dengan <b>lk</b> untuk menemukan besar gaya angkat <b>F</b>!',
+          audio_simple: '🗣️ <b>Inti Analisis:</b> Amati posisi tangan tengah di antara tangan atas dan daun sekop untuk menentukan jenis tuas. Masukkan W, lk, dan lb, lalu hitung gaya angkat.'
+        },
+        explanation: 'Sempurna! Sekop adalah Tuas Jenis III. Diketahui W = 50 N, lk = 40 cm, lb = 120 cm; Ditanyakan F; Dijawab F = (50 × 120) / 40 = 150 N.'
+      },
+      {
+        mode: 'select_tool',
+        location: '📍 Gudang Pengolahan Pascapanen',
+        category: 'Katrol Majemuk / Takal (KM = n)',
+        visual: SVG_ICONS.katrol_derek,
+        title: 'Misi 7: Mengangkat Mesin Huller Kopi',
+        story: 'Kelompok tani mengangkat mesin pengupas kopi (huller) seberat W = 2.000 N menggunakan katrol derek dengan 4 lintasan tali penopang beban (KM = 4).',
+        question: 'Pilih alat katrol yang tepat, isi angka Diketahui, pilih Ditanyakan, lalu hitung gaya tarik (F)!',
+        tag: 'Katrol & Hitung Gaya',
+        options: ['gunting', 'katrol_derek', 'pisau'],
+        correct: 'katrol_derek',
+        calcQuestion: 'Langkah 2: Masukkan angka Diketahui, pilih Ditanyakan, dan ketik hasil gaya tarik minimum tali (F)!',
+        knownFields: [
+          { key: 'W', label: 'Berat mesin (W)', unit: 'N', expected: 2000 },
+          { key: 'KM', label: 'Jumlah tali (KM)', unit: 'tali', expected: 4 }
+        ],
+        askedOptions: [
+          { id: 'a1', label: 'Gaya tarik minimum tali (F)' },
+          { id: 'a2', label: 'Berat mesin huller (W)' },
+          { id: 'a3', label: 'Jumlah roda katrol (n)' }
+        ],
+        correctAsked: 'a1',
+        formulaOptions: [
+          { id: 'f1', label: 'F = W ÷ KM' },
+          { id: 'f2', label: 'F = W × KM' },
+          { id: 'f3', label: 'F = W ÷ 2' }
+        ],
+        correctFormula: 'f1',
+        answerField: { symbol: 'F =', unit: 'N', expected: 500 },
+        hints: {
+          visual: '👀 <b>Petunjuk Visual:</b> Cari susunan katrol bertingkat (gabungan katrol tetap dan katrol bebas) yang memiliki beberapa lintasan tali penopang beban berat.',
+          identify: '🔎 <b>Cara Identifikasi Soal:</b><br>• Cari pada cerita berapa <b>berat mesin huller (W)</b> dan berapa <b>jumlah tali penopang beban (KM)</b>.<br>• Pilih besaran gaya tarik minimum tali pada bagian <b>Ditanyakan</b>.',
+          numeracy: '🔢 <b>Panduan Analisis Hitungan Katrol Majemuk:</b><br>• Pada katrol majemuk, nilai <b>KM</b> sama dengan banyaknya tali yang menopang beban bergerak.<br>• Untuk menghitung gaya tarik minimum (<b>F</b>), bagilah berat beban (<b>W</b>) dengan nilai <b>KM</b>!',
+          audio_simple: '🗣️ <b>Inti Analisis:</b> Temukan berat mesin dan jumlah tali penopang dari cerita. Bagi berat mesin dengan jumlah tali penopang untuk mencari gaya tarik.'
+        },
+        explanation: 'Tepat sekali! Diketahui W = 2.000 N dan KM = 4; Ditanyakan F; Dijawab F = 2.000 / 4 = 500 N.'
+      },
+      {
+        mode: 'select_tool',
+        location: '📍 Tungku Pengeringan Kayu Bakar',
+        category: 'Bidang Miring – Baji Pembelah',
+        visual: SVG_ICONS.kapak,
+        title: 'Misi 8: Membelah Kayu Bakar Tungku',
+        story: 'Pak Budi mengayunkan kapak untuk membelah kayu tungku. Kepala kapak berbentuk baji dengan tebal punggung h = 4 cm dan panjang sisi miring bilah s = 16 cm.',
+        question: 'Pilih alat pembelah yang tepat, isi angka Diketahui, pilih Ditanyakan, lalu hitung KM kapak!',
+        tag: 'Baji & Hitung KM',
+        options: ['gunting', 'kapak', 'pembuka_botol'],
+        correct: 'kapak',
+        calcQuestion: 'Langkah 2: Masukkan angka Diketahui, pilih Ditanyakan, dan ketik hasil Keuntungan Mekanis (KM) kapak!',
+        knownFields: [
+          { key: 's', label: 'Sisi miring bilah (s)', unit: 'cm', expected: 16 },
+          { key: 'h', label: 'Tebal punggung (h)', unit: 'cm', expected: 4 }
+        ],
+        askedOptions: [
+          { id: 'a1', label: 'Keuntungan Mekanis baji kapak (KM)' },
+          { id: 'a2', label: 'Tebal punggung kapak (h)' },
+          { id: 'a3', label: 'Panjang sisi miring bilah (s)' }
+        ],
+        correctAsked: 'a1',
+        formulaOptions: [
+          { id: 'f1', label: 'KM = s ÷ h' },
+          { id: 'f2', label: 'KM = h ÷ s' },
+          { id: 'f3', label: 'KM = s - h' }
+        ],
+        correctFormula: 'f1',
+        answerField: { symbol: 'KM =', unit: 'kali', expected: 4 },
+        hints: {
+          visual: '👀 <b>Petunjuk Visual:</b> Perhatikan alat pembelah kayu yang memiliki kepala logam berbentuk baji (dua bidang miring yang menyatu tajam).',
+          identify: '🔎 <b>Cara Identifikasi Soal:</b><br>• Bedakan dari cerita mana ukuran <b>panjang sisi miring bilah (s)</b> dan mana <b>tebal punggung kepala kapak (h)</b>.<br>• Perhatikan besaran yang diminta pada bagian <b>Ditanyakan</b>.',
+          numeracy: '🔢 <b>Panduan Analisis Hitungan KM Baji:</b><br>• Baji bekerja berdasarkan prinsip bidang miring, sehingga keuntungan mekanisnya merupakan perbandingan antara <b>panjang sisi miring bilah (s)</b> dan <b>tebal punggungnya (h)</b>.<br>• Tuliskan rumus <b>KM = s ÷ h</b> dan hitung hasil baginya!',
+          audio_simple: '🗣️ <b>Inti Analisis:</b> Temukan panjang sisi miring bilah dan tebal punggung kapak. Bagi sisi miring dengan tebal punggung untuk menghitung KM.'
+        },
+        explanation: 'Tepat! Diketahui s = 16 cm dan h = 4 cm; Ditanyakan KM; Dijawab KM = 16 / 4 = 4 kali.'
+      },
+      {
+        mode: 'lever_lab',
+        toolId: 'pembuka_botol',
+        location: '📍 Saung Istirahat Petani',
+        category: 'Analisis Tuas & Hitung KM',
+        visual: SVG_ICONS.pembuka_botol,
+        title: 'Misi 9: Membuka Tutup Botol Minuman di Saung',
+        story: 'Pak Budi memakai PEMBUKA BOTOL untuk mencongkel tutup botol. Jarak ujung tumpu ke pengait tutup lb = 2 cm dan jarak ujung tumpu ke tangan di gagang lk = 12 cm.',
+        question: 'Pasang pin T, B, K pada pembuka botol, tentukan jenis tuasnya, lalu isi & hitung KM!',
+        tag: 'Tuas & Hitung KM',
+        hotspots: [
+          { id: 'h1', x: 48, y: 16, expected: 'T', labelHint: 'Ujung atas yang bertumpu pada tutup botol' },
+          { id: 'h2', x: 48, y: 31, expected: 'B', labelHint: 'Pengait tengah yang mengangkat tepi tutup' },
+          { id: 'h3', x: 52, y: 76, expected: 'K', labelHint: 'Ujung gagang tempat tangan menarik' }
+        ],
+        correctLeverType: 2,
+        calcQuestion: 'Langkah 3: Masukkan angka Diketahui, pilih Ditanyakan, dan ketik hasil Keuntungan Mekanis (KM) pembuka botol!',
+        knownFields: [
+          { key: 'lk', label: 'Lengan kuasa (lk)', unit: 'cm', expected: 12 },
+          { key: 'lb', label: 'Lengan beban (lb)', unit: 'cm', expected: 2 }
+        ],
+        askedOptions: [
+          { id: 'a1', label: 'Keuntungan Mekanis tuas (KM)' },
+          { id: 'a2', label: 'Panjang lengan kuasa (lk)' },
+          { id: 'a3', label: 'Panjang lengan beban (lb)' }
+        ],
+        correctAsked: 'a1',
+        formulaOptions: [
+          { id: 'f1', label: 'KM = lk ÷ lb' },
+          { id: 'f2', label: 'KM = lb ÷ lk' },
+          { id: 'f3', label: 'KM = lk - lb' }
+        ],
+        correctFormula: 'f1',
+        answerField: { symbol: 'KM =', unit: 'kali', expected: 6 },
+        hints: {
+          visual: '👀 <b>Petunjuk Gambar Tuas:</b><br>• Saat mencongkel tutup botol ke atas: ujung paling atas bersandar pada tutup sebagai <b>poros (T)</b>, pengait tengah mengangkat tepi tutup sebagai <b>beban (B)</b>, dan tangan menarik ujung gagang sebagai <b>kuasa (K)</b>.',
+          identify: '🔎 <b>Cara Identifikasi Soal:</b><br>• Identifikasi dari cerita mana jarak ujung tumpu ke gagang tangan <b>(lk)</b> dan mana jarak ujung tumpu ke pengait tutup botol <b>(lb)</b>.<br>• Tentukan besaran keuntungan mekanis pada bagian <b>Ditanyakan</b>.',
+          numeracy: '🔢 <b>Panduan Analisis Hitungan KM Tuas:</b><br>• Keuntungan Mekanis (KM) pada tuas dihitung dengan membandingkan panjang <b>lengan kuasa (lk)</b> terhadap panjang <b>lengan beban (lb)</b>.<br>• Gunakan rumus <b>KM = lk ÷ lb</b> dan hitung hasil pembagiannya!',
+          audio_simple: '🗣️ <b>Inti Analisis:</b> Perhatikan pengait tutup botol di antara ujung tumpu dan gagang tangan untuk menentukan jenis tuas. Bandingkan lengan kuasa dengan lengan beban untuk mencari KM.'
+        },
+        explanation: 'Hebat! Pembuka botol adalah Tuas Jenis II. Diketahui lk = 12 cm dan lb = 2 cm; Ditanyakan KM; Dijawab KM = 12 / 2 = 6 kali.'
+      },
+      {
+        mode: 'select_tool',
+        location: '📍 Kebun Pembibitan Kopi',
+        category: 'Bidang Miring – Baji Pemotong',
+        visual: SVG_ICONS.pisau,
+        title: 'Misi 10: Memangkas Ranting & Tunas Air',
+        story: 'Petani memangkas tunas liar kopi memakai pisau bermata baji tipis dengan lebar bilah s = 2,5 cm dan tebal punggung bilah h = 0,25 cm.',
+        question: 'Pilih alat pemangkas yang tepat, isi angka Diketahui, pilih Ditanyakan, lalu hitung KM pisau!',
+        tag: 'Baji & Hitung KM',
+        options: ['pisau', 'papan_tanjakan', 'katrol_derek'],
+        correct: 'pisau',
+        calcQuestion: 'Langkah 2: Masukkan angka Diketahui, pilih Ditanyakan, dan ketik hasil Keuntungan Mekanis (KM) pisau!',
+        knownFields: [
+          { key: 's', label: 'Lebar bilah (s)', unit: 'cm', expected: 2.5 },
+          { key: 'h', label: 'Tebal punggung (h)', unit: 'cm', expected: 0.25 }
+        ],
+        askedOptions: [
+          { id: 'a1', label: 'Keuntungan Mekanis pisau (KM)' },
+          { id: 'a2', label: 'Tebal punggung pisau (h)' },
+          { id: 'a3', label: 'Lebar bilah pisau (s)' }
+        ],
+        correctAsked: 'a1',
+        formulaOptions: [
+          { id: 'f1', label: 'KM = s ÷ h' },
+          { id: 'f2', label: 'KM = h ÷ s' },
+          { id: 'f3', label: 'KM = s × h' }
+        ],
+        correctFormula: 'f1',
+        answerField: { symbol: 'KM =', unit: 'kali', expected: 10 },
+        hints: {
+          visual: '👀 <b>Petunjuk Visual:</b> Perhatikan alat pemangkas genggam yang memiliki bilah logam tipis dan tajam berprinsip baji.',
+          identify: '🔎 <b>Cara Identifikasi Soal:</b><br>• Cari pada cerita mana ukuran <b>lebar sisi miring bilah (s)</b> dan mana <b>tebal punggung bilah pisau (h)</b>.<br>• Pilih besaran yang ditanyakan pada bagian <b>Ditanyakan</b>.',
+          numeracy: '🔢 <b>Panduan Analisis Hitungan KM Baji Pisau:</b><br>• Semakin tipis punggung bilah dibanding lebar bilahnya, semakin besar keuntungan mekanisnya.<br>• Bagilah <b>lebar bilah (s)</b> dengan <b>tebal punggung (h)</b> menggunakan rumus <b>KM = s ÷ h</b>!',
+          audio_simple: '🗣️ <b>Inti Analisis:</b> Temukan lebar bilah dan tebal punggung pisau dari cerita. Bagi lebar bilah dengan tebal punggung untuk menghitung KM.'
+        },
+        explanation: 'Sempurna! Diketahui s = 2,5 cm dan h = 0,25 cm; Ditanyakan KM; Dijawab KM = 2,5 / 0,25 = 10 kali.'
+      }
+    ];
+
+    /**
+     * ============================================================================
+     * 4. STATE PERMAINAN, PUSAT BANTUAN & SISTEM AUDIO
+     * ============================================================================
+     */
+    let currentMissionIndex = 0;
+    let score = 0;
+    let isAnswered = false;
+    let soundEnabled = true;
+    let currentFilter = 'all';
+    let activeHelpMode = null; // null | 'visual' | 'identify' | 'numeracy' | 'audio_simple'
+
+    // State pilihan siswa pada misi non-tuas (Alat + Input Diketahui + Ditanyakan + Rumus & Input Hasil)
+    let selectedToolOption = null;
+    let selectedAskedNonLever = null;
+    let selectedFormulaNonLever = null;
+
+    // State untuk Lab Identifikasi Tuas (T, B, K, Jenis Tuas + Input Diketahui + Ditanyakan + Rumus & Input Hasil)
+    let activePinType = 'T'; // 'T' | 'B' | 'K'
+    let placedPins = {}; // { h1: 'T', h2: 'B', h3: 'K' }
+    let selectedLeverType = null; // 1 | 2 | 3
+    let selectedAskedLever = null;
+    let selectedFormulaLever = null;
+
+    function speakText(text) {
+      if (!soundEnabled || !('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/[📍🧰💡🗣️🔊👀🎯🔢📏💧⚖️🪓🔪🆘]/g, '');
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'id-ID';
+        utterance.rate = 0.92;
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        // Abaikan jika browser tidak mendukung TTS
+      }
+    }
+
+    function speakMissionAudio() {
+      const mission = MISSIONS[currentMissionIndex];
+      const calcText = mission.calcQuestion || '';
+      speakText(`${mission.story} ${mission.question} ${calcText}`);
+    }
+
+    function speakHelpAudio() {
+      const content = document.getElementById('help-hint-content').innerText;
+      speakText(content);
+    }
+
+    function openHelpCenterModal() {
+      playSound('click');
+      const modal = document.getElementById('help-center-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function activateHelpHint(mode) {
+      playSound('click');
+      activeHelpMode = mode;
+      closeModal('help-center-modal');
+      renderActiveHelpHint();
+    }
+
+    function hideActiveHelp() {
+      activeHelpMode = null;
+      document.getElementById('help-hint-box').classList.add('hidden');
+      const ttsStoryBtn = document.getElementById('btn-tts-story');
+      ttsStoryBtn.classList.add('hidden');
+      ttsStoryBtn.classList.remove('inline-flex');
+    }
+
+    function renderActiveHelpHint() {
+      if (!activeHelpMode) {
+        hideActiveHelp();
+        return;
+      }
+
+      const mission = MISSIONS[currentMissionIndex];
+      const hintBox = document.getElementById('help-hint-box');
+      const hintTitle = document.getElementById('help-hint-title');
+      const hintContent = document.getElementById('help-hint-content');
+      const ttsStoryBtn = document.getElementById('btn-tts-story');
+      const ttsHelpBtn = document.getElementById('btn-tts-help');
+
+      hintBox.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-500', 'text-emerald-950', 'bg-indigo-50', 'border-indigo-500', 'text-indigo-950', 'bg-sky-50', 'border-sky-500', 'text-sky-950', 'bg-amber-100', 'border-amber-600', 'text-amber-950');
+      ttsStoryBtn.classList.add('hidden');
+      ttsStoryBtn.classList.remove('inline-flex');
+      ttsHelpBtn.classList.remove('hidden');
+      ttsHelpBtn.classList.add('inline-flex');
+
+      if (activeHelpMode === 'visual') {
+        hintBox.classList.add('bg-emerald-50', 'border-emerald-500', 'text-emerald-950');
+        hintTitle.innerHTML = '<span>👀</span> <span>Hint Visual & Bagian Alat:</span>';
+        hintContent.innerHTML = mission.hints.visual;
+      } else if (activeHelpMode === 'identify') {
+        hintBox.classList.add('bg-indigo-50', 'border-indigo-500', 'text-indigo-950');
+        hintTitle.innerHTML = '<span>🔎</span> <span>Hint Identifikasi Diketahui & Ditanyakan:</span>';
+        hintContent.innerHTML = mission.hints.identify;
+      } else if (activeHelpMode === 'numeracy') {
+        hintBox.classList.add('bg-sky-50', 'border-sky-500', 'text-sky-950');
+        hintTitle.innerHTML = '<span>🔢</span> <span>Hint Berhitung & Langkah Rumus:</span>';
+        hintContent.innerHTML = mission.hints.numeracy;
+      } else if (activeHelpMode === 'audio_simple') {
+        hintBox.classList.add('bg-amber-100', 'border-amber-600', 'text-amber-950');
+        hintTitle.innerHTML = '<span>🗣️</span> <span>Hint Kalimat Ringkas & Suara:</span>';
+        hintContent.innerHTML = mission.hints.audio_simple;
+        ttsStoryBtn.classList.remove('hidden');
+        ttsStoryBtn.classList.add('inline-flex');
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled || typeof Tone === 'undefined') return;
+      try {
+        if (Tone.context.state !== 'running') {
+          Tone.start();
+        }
+        const synth = new Tone.Synth().toDestination();
+        if (type === 'correct') {
+          synth.triggerAttackRelease('C5', '16n', Tone.now());
+          synth.triggerAttackRelease('E5', '16n', Tone.now() + 0.1);
+          synth.triggerAttackRelease('G5', '8n', Tone.now() + 0.2);
+        } else if (type === 'wrong') {
+          synth.triggerAttackRelease('E3', '8n', Tone.now());
+          synth.triggerAttackRelease('C3', '8n', Tone.now() + 0.12);
+        } else if (type === 'click') {
+          synth.triggerAttackRelease('A4', '32n', Tone.now());
+        } else if (type === 'win') {
+          synth.triggerAttackRelease('C5', '8n', Tone.now());
+          synth.triggerAttackRelease('E5', '8n', Tone.now() + 0.12);
+          synth.triggerAttackRelease('G5', '8n', Tone.now() + 0.24);
+          synth.triggerAttackRelease('C6', '4n', Tone.now() + 0.36);
+        }
+      } catch (e) {
+        // Abaikan jika browser memblokir autoplay audio sebelum interaksi
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('btn-sound');
+      btn.textContent = soundEnabled ? '🔊' : '🔇';
+      if (soundEnabled) playSound('click');
+    }
+
+    /**
+     * ============================================================================
+     * 5. RENDER SIDEBAR GUDANG ALAT (TANPA BOCORAN JAWABAN)
+     * ============================================================================
+     */
+    function renderSidebarTools(filter = 'all') {
+      currentFilter = filter;
+      const container = document.getElementById('sidebar-tools-list');
+      container.innerHTML = '';
+
+      const filtered = filter === 'all'
+        ? TOOLS_DATA
+        : TOOLS_DATA.filter(t => t.category === filter);
+
+      filtered.forEach(tool => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.onclick = () => showToolDetail(tool);
+        card.className = 'tool-card bg-amber-50 hover:bg-white border-2 border-amber-800 rounded-xl p-2 flex flex-col items-center text-center cursor-pointer';
+        card.innerHTML = `
+          <div class="w-14 h-14 sm:w-16 sm:h-16 mb-1 flex items-center justify-center">
+            ${tool.icon}
+          </div>
+          <span class="font-bold text-xs text-stone-900 leading-tight">${tool.name}</span>
+          <span class="text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded-full mt-1">
+            ${tool.category === 'tuas' ? 'Tuas / Pengungkit' : tool.categoryLabel}
+          </span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function filterSidebar(category) {
+      playSound('click');
+      document.querySelectorAll('.tab-filter').forEach(btn => {
+        btn.classList.remove('bg-amber-500', 'text-amber-950', 'font-bold');
+        btn.classList.add('text-amber-200', 'font-semibold');
+      });
+      const activeBtn = document.getElementById(`tab-${category}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-amber-200', 'font-semibold');
+        activeBtn.classList.add('bg-amber-500', 'text-amber-950', 'font-bold');
+      }
+      renderSidebarTools(category);
+    }
+
+    function showToolDetail(tool) {
+      playSound('click');
+      document.getElementById('modal-tool-svg').innerHTML = tool.icon;
+      document.getElementById('modal-tool-badge').textContent = tool.categoryLabel;
+      document.getElementById('modal-tool-name').textContent = tool.name;
+      document.getElementById('modal-tool-principle').textContent = tool.principle;
+      document.getElementById('modal-tool-desc').textContent = tool.desc;
+
+      const modal = document.getElementById('tool-detail-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal(id) {
+      playSound('click');
+      const modal = document.getElementById(id);
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    /**
+     * ============================================================================
+     * 6. RENDER MISI & PERTANYAAN AKTIF
+     * ============================================================================
+     */
+    function loadMission(index) {
+      isAnswered = false;
+      selectedToolOption = null;
+      selectedAskedNonLever = null;
+      selectedFormulaNonLever = null;
+      const mission = MISSIONS[index];
+
+      // Update HUD
+      document.getElementById('mission-counter').textContent = `${index + 1} / ${MISSIONS.length}`;
+      const progressPct = ((index + 1) / MISSIONS.length) * 100;
+      document.getElementById('progress-bar').style.width = `${progressPct}%`;
+
+      // Update Panggung Adegan
+      document.getElementById('scene-location-badge').textContent = mission.location;
+      document.getElementById('scene-category-badge').textContent = mission.category;
+      document.getElementById('scene-visual-box').innerHTML = mission.visual;
+      document.getElementById('mission-title').textContent = mission.title;
+      document.getElementById('mission-story').textContent = mission.story;
+
+      // Update Pertanyaan
+      document.getElementById('question-text').textContent = mission.question;
+      document.getElementById('question-type-tag').textContent = mission.tag;
+
+      // Perbarui hint jika bantuan sedang aktif
+      renderActiveHelpHint();
+
+      // Sembunyikan area umpan balik
+      const feedbackArea = document.getElementById('feedback-area');
+      feedbackArea.classList.add('hidden');
+      feedbackArea.classList.remove('animate-shake');
+
+      const nonLeverBox = document.getElementById('non-lever-box');
+      const leverLabBox = document.getElementById('lever-lab-box');
+
+      if (mission.mode === 'lever_lab') {
+        nonLeverBox.classList.add('hidden');
+        leverLabBox.classList.remove('hidden');
+        initLeverLab(mission);
+      } else {
+        leverLabBox.classList.add('hidden');
+        nonLeverBox.classList.remove('hidden');
+
+        // Render 3 Kartu Opsi Alat
+        const optionsGrid = document.getElementById('options-grid');
+        optionsGrid.innerHTML = '';
+
+        mission.options.forEach(optId => {
+          const tool = TOOLS_DATA.find(t => t.id === optId);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.id = `opt-${optId}`;
+          btn.onclick = () => selectNonLeverTool(optId);
+          btn.className = 'tool-card bg-white border-2 border-amber-700 rounded-2xl p-2.5 flex sm:flex-col items-center gap-3 sm:gap-1.5 text-left sm:text-center cursor-pointer';
+          btn.innerHTML = `
+            <div class="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+              ${tool.icon}
+            </div>
+            <div class="flex-1 sm:flex-initial">
+              <div class="font-game text-sm sm:text-base text-stone-900 leading-tight">${tool.name}</div>
+              <div class="text-[11px] font-semibold text-amber-800 mt-0.5">Klik untuk memilih</div>
+            </div>
+          `;
+          optionsGrid.appendChild(btn);
+        });
+
+        // Render Langkah 2: Identifikasi Soal (Input Diketahui, Pilih Ditanyakan, Pilih Rumus & Ketik Hasil) Non-Tuas
+        document.getElementById('calc-question-nonlever').textContent = mission.calcQuestion;
+        renderKnownInputs('known-inputs-nonlever', 'kn-nl', mission.knownFields);
+        renderStepOptions('asked-options-nonlever', 'as-nl', mission.askedOptions, (id) => selectNonLeverAsked(id));
+        renderStepOptions('formula-options-nonlever', 'fm-nl', mission.formulaOptions, (id) => selectNonLeverFormula(id));
+        renderAnswerInput('answer-input-nonlever', 'ans-nl', mission.answerField);
+
+        const submitBtn = document.getElementById('btn-submit-nonlever');
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+
+    function parseStudentNumber(rawStr) {
+      if (rawStr === null || rawStr === undefined) return NaN;
+      const cleaned = String(rawStr).trim().replace(/\s+/g, '').replace(',', '.');
+      if (cleaned === '') return NaN;
+      return Number(cleaned);
+    }
+
+    function isNearlyEqual(a, b) {
+      if (Number.isNaN(a) || Number.isNaN(b)) return false;
+      return Math.abs(a - b) <= 0.02;
+    }
+
+    function renderKnownInputs(containerId, prefix, knownFields) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      knownFields.forEach(field => {
+        const wrapper = document.createElement('div');
+        wrapper.id = `${prefix}-wrap-${field.key}`;
+        wrapper.className = 'bg-sky-50 border border-sky-300 rounded-xl p-2 flex flex-col gap-1';
+        wrapper.innerHTML = `
+          <label for="${prefix}-inp-${field.key}" class="text-[11px] font-bold text-sky-950">${field.label}</label>
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold text-xs text-sky-900">${field.key} =</span>
+            <input type="text" inputmode="decimal" id="${prefix}-inp-${field.key}" placeholder="Ketik angka"
+              class="w-full bg-white border-2 border-sky-400 focus:border-sky-700 focus:outline-none rounded-lg px-2 py-1 text-xs font-bold text-stone-900" />
+            <span class="text-[11px] font-bold text-stone-600 shrink-0">${field.unit}</span>
+          </div>
+          <div id="${prefix}-fb-${field.key}" class="hidden text-[10px] font-bold mt-0.5"></div>
+        `;
+        container.appendChild(wrapper);
+      });
+    }
+
+    function renderAnswerInput(containerId, prefix, answerField) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = `
+        <label for="${prefix}-inp" class="text-xs font-extrabold text-emerald-950">Hasil Hitungan:</label>
+        <div class="flex items-center gap-1.5 flex-1 min-w-[160px]">
+          <span class="font-extrabold text-xs sm:text-sm text-emerald-900">${answerField.symbol}</span>
+          <input type="text" inputmode="decimal" id="${prefix}-inp" placeholder="Ketik angka hasil"
+            class="w-full max-w-[160px] bg-white border-2 border-emerald-500 focus:border-emerald-800 focus:outline-none rounded-lg px-2.5 py-1 text-xs sm:text-sm font-extrabold text-stone-900" />
+          <span class="text-xs font-bold text-emerald-900">${answerField.unit}</span>
+        </div>
+        <span id="${prefix}-fb" class="hidden text-xs font-extrabold"></span>
+      `;
+    }
+
+    function gradeKnownInputs(prefix, knownFields) {
+      let allFilled = true;
+      let allCorrect = true;
+      const results = [];
+
+      knownFields.forEach(field => {
+        const inp = document.getElementById(`${prefix}-inp-${field.key}`);
+        const val = parseStudentNumber(inp ? inp.value : '');
+        if (Number.isNaN(val)) allFilled = false;
+        const ok = isNearlyEqual(val, field.expected);
+        if (!ok) allCorrect = false;
+        results.push({ field, inp, ok });
+      });
+
+      return { allFilled, allCorrect, results };
+    }
+
+    function lockKnownInputs(prefix, gradeResult) {
+      gradeResult.results.forEach(({ field, inp, ok }) => {
+        const wrap = document.getElementById(`${prefix}-wrap-${field.key}`);
+        const fb = document.getElementById(`${prefix}-fb-${field.key}`);
+        if (inp) inp.disabled = true;
+        if (ok) {
+          wrap.className = 'bg-emerald-100 border-2 border-emerald-600 rounded-xl p-2 flex flex-col gap-1';
+          fb.className = 'text-[10px] font-extrabold text-emerald-800 mt-0.5';
+          fb.textContent = `✓ Tepat (${field.key} = ${String(field.expected).replace('.', ',')} ${field.unit})`;
+        } else {
+          wrap.className = 'bg-rose-100 border-2 border-rose-600 rounded-xl p-2 flex flex-col gap-1';
+          fb.className = 'text-[10px] font-extrabold text-rose-800 mt-0.5';
+          fb.textContent = `✕ Seharusnya ${field.key} = ${String(field.expected).replace('.', ',')} ${field.unit}`;
+        }
+      });
+    }
+
+    function lockAnswerInput(prefix, answerField, isCorrect) {
+      const inp = document.getElementById(`${prefix}-inp`);
+      const fb = document.getElementById(`${prefix}-fb`);
+      if (inp) inp.disabled = true;
+      if (isCorrect) {
+        if (inp) inp.className = 'w-full max-w-[160px] bg-emerald-100 border-2 border-emerald-600 rounded-lg px-2.5 py-1 text-xs sm:text-sm font-extrabold text-emerald-950';
+        fb.className = 'text-xs font-extrabold text-emerald-800';
+        fb.textContent = `✓ Benar (${String(answerField.expected).replace('.', ',')} ${answerField.unit})`;
+      } else {
+        if (inp) inp.className = 'w-full max-w-[160px] bg-rose-100 border-2 border-rose-600 rounded-lg px-2.5 py-1 text-xs sm:text-sm font-extrabold text-rose-950';
+        fb.className = 'text-xs font-extrabold text-rose-800';
+        fb.textContent = `✕ Jawaban benar: ${String(answerField.expected).replace('.', ',')} ${answerField.unit}`;
+      }
+    }
+
+    function renderStepOptions(containerId, prefix, optionsList, onSelectFn) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      optionsList.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = `${prefix}-${opt.id}`;
+        btn.onclick = () => onSelectFn(opt.id);
+        btn.className = 'bg-white hover:bg-amber-50 border-2 border-amber-500 rounded-xl py-2 px-2.5 text-center font-semibold text-xs text-stone-900 transition cursor-pointer';
+        btn.textContent = opt.label;
+        container.appendChild(btn);
+      });
+    }
+
+    function highlightStepSelection(prefix, optionsList, selectedId) {
+      optionsList.forEach(opt => {
+        const btn = document.getElementById(`${prefix}-${opt.id}`);
+        if (!btn) return;
+        if (opt.id === selectedId) {
+          btn.className = 'bg-amber-300 border-2 border-amber-900 ring-2 ring-amber-500 rounded-xl py-2 px-2.5 text-center font-extrabold text-xs text-amber-950 transition cursor-pointer shadow-xs';
+        } else {
+          btn.className = 'bg-white hover:bg-amber-50 border-2 border-amber-500 rounded-xl py-2 px-2.5 text-center font-semibold text-xs text-stone-900 transition cursor-pointer';
+        }
+      });
+    }
+
+    function selectNonLeverAsked(id) {
+      if (isAnswered) return;
+      playSound('click');
+      selectedAskedNonLever = id;
+      highlightStepSelection('as-nl', MISSIONS[currentMissionIndex].askedOptions, id);
+    }
+
+    function selectNonLeverTool(toolId) {
+      if (isAnswered) return;
+      playSound('click');
+      selectedToolOption = toolId;
+
+      const mission = MISSIONS[currentMissionIndex];
+      mission.options.forEach(optId => {
+        const btn = document.getElementById(`opt-${optId}`);
+        if (optId === toolId) {
+          btn.className = 'tool-card bg-amber-200 border-2 border-amber-900 ring-2 ring-amber-500 rounded-2xl p-2.5 flex sm:flex-col items-center gap-3 sm:gap-1.5 text-left sm:text-center cursor-pointer';
+        } else {
+          btn.className = 'tool-card bg-white border-2 border-amber-700 rounded-2xl p-2.5 flex sm:flex-col items-center gap-3 sm:gap-1.5 text-left sm:text-center cursor-pointer';
+        }
+      });
+    }
+
+    function selectNonLeverFormula(formulaId) {
+      if (isAnswered) return;
+      playSound('click');
+      selectedFormulaNonLever = formulaId;
+      highlightStepSelection('fm-nl', MISSIONS[currentMissionIndex].formulaOptions, formulaId);
+    }
+
+    /**
+     * ============================================================================
+     * 6B. LOGIKA INTERAKTIF LAB TUAS (T, B, K, JENIS TUAS & HITUNG GAYA/KM)
+     * ============================================================================
+     */
+    function selectPinType(type, silent = false) {
+      if (isAnswered) return;
+      if (!silent) playSound('click');
+      activePinType = type;
+
+      const styles = {
+        T: 'pin-selector border-2 border-rose-600 bg-rose-200 ring-2 ring-rose-400 text-rose-950 rounded-xl py-1.5 px-2 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition',
+        B: 'pin-selector border-2 border-blue-600 bg-blue-200 ring-2 ring-blue-400 text-blue-950 rounded-xl py-1.5 px-2 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition',
+        K: 'pin-selector border-2 border-emerald-600 bg-emerald-200 ring-2 ring-emerald-400 text-emerald-950 rounded-xl py-1.5 px-2 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition'
+      };
+      const defaultStyles = {
+        T: 'pin-selector border-2 border-rose-400 bg-rose-50 text-rose-950 rounded-xl py-1.5 px-2 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition',
+        B: 'pin-selector border-2 border-blue-400 bg-blue-50 text-blue-950 rounded-xl py-1.5 px-2 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition',
+        K: 'pin-selector border-2 border-emerald-400 bg-emerald-50 text-emerald-950 rounded-xl py-1.5 px-2 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition'
+      };
+
+      ['T', 'B', 'K'].forEach(p => {
+        const btn = document.getElementById(`pin-btn-${p}`);
+        if (btn) btn.className = (p === type) ? styles[p] : defaultStyles[p];
+      });
+    }
+
+    function clearLeverPins() {
+      if (isAnswered) return;
+      playSound('click');
+      placedPins = {};
+      renderLeverCanvas(MISSIONS[currentMissionIndex]);
+    }
+
+    function placePinOnHotspot(hotspotId) {
+      if (isAnswered) return;
+      playSound('click');
+
+      // Pastikan satu jenis pin hanya terpasang pada satu titik
+      Object.keys(placedPins).forEach(key => {
+        if (placedPins[key] === activePinType) {
+          delete placedPins[key];
+        }
+      });
+
+      placedPins[hotspotId] = activePinType;
+      renderLeverCanvas(MISSIONS[currentMissionIndex]);
+
+      // Pindah otomatis ke pin berikutnya yang belum dipasang
+      const used = Object.values(placedPins);
+      const nextPin = ['T', 'B', 'K'].find(p => !used.includes(p));
+      if (nextPin) selectPinType(nextPin, true);
+    }
+
+    function renderLeverCanvas(mission) {
+      const canvas = document.getElementById('lever-interactive-canvas');
+      const tool = TOOLS_DATA.find(t => t.id === mission.toolId);
+
+      const pinColors = {
+        T: 'bg-rose-600 border-white text-white',
+        B: 'bg-blue-600 border-white text-white',
+        K: 'bg-emerald-600 border-white text-white'
+      };
+      const pinNames = {
+        T: 'T (Tumpu)',
+        B: 'B (Beban)',
+        K: 'K (Kuasa)'
+      };
+
+      const hotspotsHTML = mission.hotspots.map(spot => {
+        const assigned = placedPins[spot.id];
+        const badgeClass = assigned
+          ? `${pinColors[assigned]} scale-105 shadow-lg`
+          : 'bg-amber-400 hover:bg-amber-300 border-amber-900 text-amber-950 animate-pulse';
+        const text = assigned ? pinNames[assigned] : '?';
+
+        return `
+          <button type="button"
+            onclick="placePinOnHotspot('${spot.id}')"
+            title="${spot.labelHint}"
+            style="left: ${spot.x}%; top: ${spot.y}%;"
+            class="absolute -translate-x-1/2 -translate-y-1/2 px-2.5 py-1 rounded-full border-2 font-game text-xs font-bold cursor-pointer transition z-10 ${badgeClass}">
+            ${text}
+          </button>
+        `;
+      }).join('');
+
+      canvas.innerHTML = `
+        <div class="w-40 h-40 sm:w-48 sm:h-48 pointer-events-none select-none">
+          ${tool.icon}
+        </div>
+        ${hotspotsHTML}
+      `;
+    }
+
+    function selectLeverType(typeNum) {
+      if (isAnswered) return;
+      playSound('click');
+      selectedLeverType = typeNum;
+
+      [1, 2, 3].forEach(num => {
+        const btn = document.getElementById(`lever-type-${num}`);
+        if (num === typeNum) {
+          btn.className = 'lever-type-btn bg-amber-300 border-2 border-amber-900 ring-2 ring-amber-500 rounded-xl py-2 px-2 text-center font-game text-xs sm:text-sm text-amber-950 font-extrabold transition shadow';
+        } else {
+          btn.className = 'lever-type-btn bg-white hover:bg-amber-50 border-2 border-amber-600 rounded-xl py-2 px-2 text-center font-game text-xs sm:text-sm text-stone-900 transition';
+        }
+      });
+    }
+
+    function initLeverLab(mission) {
+      activePinType = 'T';
+      placedPins = {};
+      selectedLeverType = null;
+      selectedAskedLever = null;
+      selectedFormulaLever = null;
+
+      selectPinType('T', true);
+      document.querySelectorAll('.lever-type-btn').forEach(btn => {
+        btn.disabled = false;
+        btn.className = 'lever-type-btn bg-white hover:bg-amber-50 border-2 border-amber-600 rounded-xl py-2 px-2 text-center font-game text-xs sm:text-sm text-stone-900 transition';
+      });
+
+      // Render Langkah 3: Input Diketahui, Pilih Ditanyakan, Pilih Rumus & Ketik Hasil pada Tuas
+      document.getElementById('calc-question-lever').textContent = mission.calcQuestion;
+      renderKnownInputs('known-inputs-lever', 'kn-lv', mission.knownFields);
+      renderStepOptions('asked-options-lever', 'as-lv', mission.askedOptions, (id) => selectLeverAsked(id));
+      renderStepOptions('formula-options-lever', 'fm-lv', mission.formulaOptions, (id) => selectLeverFormula(id));
+      renderAnswerInput('answer-input-lever', 'ans-lv', mission.answerField);
+
+      const submitBtn = document.getElementById('btn-submit-lever');
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+      renderLeverCanvas(mission);
+    }
+
+    function selectLeverAsked(id) {
+      if (isAnswered) return;
+      playSound('click');
+      selectedAskedLever = id;
+      highlightStepSelection('as-lv', MISSIONS[currentMissionIndex].askedOptions, id);
+    }
+
+    function selectLeverFormula(formulaId) {
+      if (isAnswered) return;
+      playSound('click');
+      selectedFormulaLever = formulaId;
+      highlightStepSelection('fm-lv', MISSIONS[currentMissionIndex].formulaOptions, formulaId);
+    }
+
+    function lockAndGradeStepOptions(prefix, optionsList, selectedId, correctId) {
+      optionsList.forEach(opt => {
+        const btn = document.getElementById(`${prefix}-${opt.id}`);
+        if (!btn) return;
+        btn.disabled = true;
+        if (opt.id === correctId) {
+          btn.className = 'bg-emerald-100 border-2 border-emerald-600 ring-2 ring-emerald-300 rounded-xl py-2 px-2.5 text-center font-extrabold text-xs text-emerald-950';
+        } else if (opt.id === selectedId && selectedId !== correctId) {
+          btn.className = 'bg-rose-100 border-2 border-rose-600 rounded-xl py-2 px-2.5 text-center font-semibold text-xs text-rose-950';
+        } else {
+          btn.className = 'bg-stone-100 border border-stone-300 opacity-65 rounded-xl py-2 px-2.5 text-center text-xs text-stone-600';
+        }
+      });
+    }
+
+    function checkLeverAnalysis() {
+      if (isAnswered) return;
+      const mission = MISSIONS[currentMissionIndex];
+
+      // Validasi apakah siswa sudah melengkapi Langkah 1, Langkah 2, dan Langkah 3 (Input Diketahui, Ditanyakan, Rumus & Hasil)
+      const placedCount = Object.keys(placedPins).length;
+      const knownGrade = gradeKnownInputs('kn-lv', mission.knownFields);
+      const studentAnsVal = parseStudentNumber(document.getElementById('ans-lv-inp')?.value);
+
+      if (placedCount < 3 || !selectedLeverType || !knownGrade.allFilled || !selectedAskedLever || !selectedFormulaLever || Number.isNaN(studentAnsVal)) {
+        playSound('wrong');
+        const feedbackArea = document.getElementById('feedback-area');
+        feedbackArea.classList.remove('hidden', 'bg-emerald-100', 'border-emerald-500', 'text-emerald-950', 'bg-rose-100', 'border-rose-500', 'text-rose-950');
+        feedbackArea.classList.add('bg-amber-100', 'border-amber-500', 'text-amber-950', 'animate-shake');
+        document.getElementById('feedback-icon').textContent = '⚠️';
+        document.getElementById('feedback-title').textContent = 'Jawaban Belum Lengkap!';
+        document.getElementById('feedback-desc').textContent = 'Lengkapi Langkah 1 (pin T, B, K), Langkah 2 (Jenis Tuas), dan Langkah 3 (ketik semua angka Diketahui, pilih Ditanyakan, pilih Rumus, dan ketik angka Hasil Hitungan).';
+        document.getElementById('btn-next').classList.add('hidden');
+        return;
+      }
+
+      isAnswered = true;
+      document.getElementById('btn-next').classList.remove('hidden');
+
+      const allPinsCorrect = mission.hotspots.every(spot => placedPins[spot.id] === spot.expected);
+      const leverTypeCorrect = selectedLeverType === mission.correctLeverType;
+      const knownCorrect = knownGrade.allCorrect;
+      const askedCorrect = selectedAskedLever === mission.correctAsked;
+      const formulaCorrect = selectedFormulaLever === mission.correctFormula;
+      const answerCorrect = isNearlyEqual(studentAnsVal, mission.answerField.expected);
+      const isFullCorrect = allPinsCorrect && leverTypeCorrect && knownCorrect && askedCorrect && formulaCorrect && answerCorrect;
+
+      // Kunci seluruh tombol & input
+      const submitBtn = document.getElementById('btn-submit-lever');
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      document.querySelectorAll('.lever-type-btn').forEach(btn => btn.disabled = true);
+
+      lockKnownInputs('kn-lv', knownGrade);
+      lockAndGradeStepOptions('as-lv', mission.askedOptions, selectedAskedLever, mission.correctAsked);
+      lockAndGradeStepOptions('fm-lv', mission.formulaOptions, selectedFormulaLever, mission.correctFormula);
+      lockAnswerInput('ans-lv', mission.answerField, answerCorrect);
+
+      // Tampilkan posisi pin yang benar pada gambar alat sebagai evaluasi pasca-jawab
+      mission.hotspots.forEach(spot => {
+        placedPins[spot.id] = spot.expected;
+      });
+      renderLeverCanvas(mission);
+
+      const feedbackArea = document.getElementById('feedback-area');
+      const feedbackIcon = document.getElementById('feedback-icon');
+      const feedbackTitle = document.getElementById('feedback-title');
+      const feedbackDesc = document.getElementById('feedback-desc');
+      const btnNext = document.getElementById('btn-next');
+
+      feedbackArea.classList.remove('hidden', 'bg-amber-100', 'border-amber-500', 'text-amber-950', 'bg-emerald-100', 'border-emerald-500', 'text-emerald-950', 'bg-rose-100', 'border-rose-500', 'text-rose-950', 'animate-shake');
+
+      const romanTypes = { 1: 'Tuas Jenis I', 2: 'Tuas Jenis II', 3: 'Tuas Jenis III' };
+      const correctFormulaLabel = mission.formulaOptions.find(o => o.id === mission.correctFormula).label;
+
+      if (isFullCorrect) {
+        score += 10;
+        document.getElementById('score-display').textContent = score;
+        playSound('correct');
+
+        feedbackArea.classList.add('bg-emerald-100', 'border-emerald-500', 'text-emerald-950');
+        feedbackIcon.textContent = '✅';
+        feedbackTitle.textContent = `Analisis & Hitungan Sempurna! +10 Poin (${romanTypes[mission.correctLeverType]})`;
+        feedbackDesc.textContent = mission.explanation;
+      } else {
+        playSound('wrong');
+        let mistakes = [];
+        if (!allPinsCorrect) mistakes.push('letak pin T, B, K');
+        if (!leverTypeCorrect) mistakes.push(`jenis tuas (${romanTypes[mission.correctLeverType]})`);
+        if (!knownCorrect) mistakes.push('angka pada Diketahui');
+        if (!askedCorrect) mistakes.push('bagian Ditanyakan');
+        if (!formulaCorrect) mistakes.push(`rumus (${correctFormulaLabel})`);
+        if (!answerCorrect) mistakes.push(`hasil hitungan (${String(mission.answerField.expected).replace('.', ',')} ${mission.answerField.unit})`);
+
+        feedbackArea.classList.add('bg-rose-100', 'border-rose-500', 'text-rose-950');
+        feedbackIcon.textContent = '❌';
+        feedbackTitle.textContent = `Perlu Dicermati pada: ${mistakes.join(', ')}`;
+        feedbackDesc.textContent = mission.explanation;
+      }
+
+      btnNext.innerHTML = currentMissionIndex === MISSIONS.length - 1
+        ? '<span>Lihat Hasil Akhir</span> <span>🏆</span>'
+        : '<span>Misi Berikutnya</span> <span>➡️</span>';
+    }
+
+    /**
+     * ============================================================================
+     * 7. VALIDASI JAWABAN PILIHAN ALAT NON-TUAS + INPUT DIKETAHUI & HITUNGAN FISIKA
+     * ============================================================================
+     */
+    function checkNonLeverMission() {
+      if (isAnswered) return;
+      const mission = MISSIONS[currentMissionIndex];
+
+      const knownGrade = gradeKnownInputs('kn-nl', mission.knownFields);
+      const studentAnsVal = parseStudentNumber(document.getElementById('ans-nl-inp')?.value);
+
+      if (!selectedToolOption || !knownGrade.allFilled || !selectedAskedNonLever || !selectedFormulaNonLever || Number.isNaN(studentAnsVal)) {
+        playSound('wrong');
+        const feedbackArea = document.getElementById('feedback-area');
+        feedbackArea.classList.remove('hidden', 'bg-emerald-100', 'border-emerald-500', 'text-emerald-950', 'bg-rose-100', 'border-rose-500', 'text-rose-950');
+        feedbackArea.classList.add('bg-amber-100', 'border-amber-500', 'text-amber-950', 'animate-shake');
+        document.getElementById('feedback-icon').textContent = '⚠️';
+        document.getElementById('feedback-title').textContent = 'Jawaban Belum Lengkap!';
+        document.getElementById('feedback-desc').textContent = 'Lengkapi pilihan alat pada Langkah 1, lalu ketik semua angka Diketahui, pilih Ditanyakan, pilih Rumus, dan ketik angka Hasil Hitungan pada Langkah 2.';
+        document.getElementById('btn-next').classList.add('hidden');
+        return;
+      }
+
+      isAnswered = true;
+      const toolCorrect = selectedToolOption === mission.correct;
+      const knownCorrect = knownGrade.allCorrect;
+      const askedCorrect = selectedAskedNonLever === mission.correctAsked;
+      const formulaCorrect = selectedFormulaNonLever === mission.correctFormula;
+      const answerCorrect = isNearlyEqual(studentAnsVal, mission.answerField.expected);
+      const isFullCorrect = toolCorrect && knownCorrect && askedCorrect && formulaCorrect && answerCorrect;
+
+      const submitBtn = document.getElementById('btn-submit-nonlever');
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+      // Highlight hasil pilihan alat
+      mission.options.forEach(optId => {
+        const btn = document.getElementById(`opt-${optId}`);
+        btn.disabled = true;
+        if (optId === mission.correct) {
+          btn.className = 'tool-card bg-emerald-100 border-2 border-emerald-600 ring-4 ring-emerald-300 rounded-2xl p-2.5 flex sm:flex-col items-center gap-3 sm:gap-1.5 text-left sm:text-center';
+        } else if (optId === selectedToolOption && !toolCorrect) {
+          btn.className = 'tool-card bg-rose-100 border-2 border-rose-600 animate-shake rounded-2xl p-2.5 flex sm:flex-col items-center gap-3 sm:gap-1.5 text-left sm:text-center';
+        } else {
+          btn.className = 'tool-card bg-stone-100 border-2 border-stone-300 opacity-65 rounded-2xl p-2.5 flex sm:flex-col items-center gap-3 sm:gap-1.5 text-left sm:text-center';
+        }
+      });
+
+      // Highlight hasil input Diketahui, pilihan Ditanyakan, Rumus, dan input Hasil Hitungan
+      lockKnownInputs('kn-nl', knownGrade);
+      lockAndGradeStepOptions('as-nl', mission.askedOptions, selectedAskedNonLever, mission.correctAsked);
+      lockAndGradeStepOptions('fm-nl', mission.formulaOptions, selectedFormulaNonLever, mission.correctFormula);
+      lockAnswerInput('ans-nl', mission.answerField, answerCorrect);
+
+      const feedbackArea = document.getElementById('feedback-area');
+      const feedbackIcon = document.getElementById('feedback-icon');
+      const feedbackTitle = document.getElementById('feedback-title');
+      const feedbackDesc = document.getElementById('feedback-desc');
+      const btnNext = document.getElementById('btn-next');
+
+      feedbackArea.classList.remove('hidden', 'bg-amber-100', 'border-amber-500', 'text-amber-950', 'bg-emerald-100', 'border-emerald-500', 'text-emerald-950', 'bg-rose-100', 'border-rose-500', 'text-rose-950', 'animate-shake');
+      btnNext.classList.remove('hidden');
+
+      const correctTool = TOOLS_DATA.find(t => t.id === mission.correct);
+      const correctFormulaLabel = mission.formulaOptions.find(o => o.id === mission.correctFormula).label;
+
+      if (isFullCorrect) {
+        score += 10;
+        document.getElementById('score-display').textContent = score;
+        playSound('correct');
+
+        feedbackArea.classList.add('bg-emerald-100', 'border-emerald-500', 'text-emerald-950');
+        feedbackIcon.textContent = '✅';
+        feedbackTitle.textContent = `Identifikasi & Hitungan Tepat! +10 Poin`;
+        feedbackDesc.textContent = mission.explanation;
+      } else {
+        playSound('wrong');
+        let mistakes = [];
+        if (!toolCorrect) mistakes.push(`pilihan alat (${correctTool.name})`);
+        if (!knownCorrect) mistakes.push('angka pada Diketahui');
+        if (!askedCorrect) mistakes.push('bagian Ditanyakan');
+        if (!formulaCorrect) mistakes.push(`rumus (${correctFormulaLabel})`);
+        if (!answerCorrect) mistakes.push(`hasil hitungan (${String(mission.answerField.expected).replace('.', ',')} ${mission.answerField.unit})`);
+
+        feedbackArea.classList.add('bg-rose-100', 'border-rose-500', 'text-rose-950');
+        feedbackIcon.textContent = '❌';
+        feedbackTitle.textContent = `Kurang Tepat pada: ${mistakes.join(', ')}`;
+        feedbackDesc.textContent = mission.explanation;
+      }
+
+      btnNext.innerHTML = currentMissionIndex === MISSIONS.length - 1
+        ? '<span>Lihat Hasil Akhir</span> <span>🏆</span>'
+        : '<span>Misi Berikutnya</span> <span>➡️</span>';
+    }
+
+    function nextMission() {
+      playSound('click');
+      if (currentMissionIndex < MISSIONS.length - 1) {
+        currentMissionIndex++;
+        loadMission(currentMissionIndex);
+      } else {
+        showVictoryModal();
+      }
+    }
+
+    function showVictoryModal() {
+      playSound('win');
+      document.getElementById('final-score').textContent = `${score} / ${MISSIONS.length * 10}`;
+
+      let predicate = 'Terus Berlatih Mengenal Pesawat Sederhana!';
+      if (score >= 90) {
+        predicate = '🌟 Predikat: Master Pesawat Sederhana Lereng Sindoro–Sumbing!';
+      } else if (score >= 70) {
+        predicate = '👏 Predikat: Asisten Cerdas Petani Temanggung!';
+      } else if (score >= 50) {
+        predicate = '👍 Predikat: Penjelajah Sains Pemula!';
+      }
+      document.getElementById('final-predicate').textContent = predicate;
+
+      const modal = document.getElementById('victory-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function resetGame() {
+      playSound('click');
+      closeModal('victory-modal');
+      currentMissionIndex = 0;
+      score = 0;
+      document.getElementById('score-display').textContent = '0';
+      loadMission(0);
+    }
+
+    // Inisialisasi saat halaman selesai dimuat
+    window.onload = function () {
+      renderSidebarTools('all');
+      loadMission(0);
+    };
+  </script>
+</body>
+</html>
